@@ -1,4 +1,6 @@
-from pydantic import BaseSettings, Config
+
+
+from pydantic_settings import BaseSettings
 import os
 from typing import Optional
 
@@ -8,12 +10,13 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
     
-    class Config:
-        env_file = ".env"
+    model_config = {
+        "env_file": ".env"
+    }
 
 settings = Settings()
 
-class ProductionConfig(Config):
+class ProductionConfig:
     DEBUG = False
     # Use DATABASE_URL from environment
     SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
