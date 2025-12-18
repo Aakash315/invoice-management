@@ -10,10 +10,10 @@ class UserCreate(UserBase):
     password: str
     role: str = "user"
 
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
-
 
 
 class UserResponse(UserBase):
@@ -22,7 +22,7 @@ class UserResponse(UserBase):
     created_at: datetime
     
     class Config:
-        orm_mode = True
+        from_attributes = True
         exclude = {'clients', 'invoices', 'password_hash'}
 
 

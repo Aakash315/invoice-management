@@ -12,12 +12,13 @@ class InvoiceItemCreate(InvoiceItemBase):
     pass
 
 
+
 class InvoiceItemResponse(InvoiceItemBase):
     id: int
     amount: float
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class InvoiceBase(BaseModel):
     client_id: int
@@ -51,9 +52,10 @@ class InvoiceResponse(InvoiceBase):
     balance: float
     client: Optional[ClientResponse] = None
     items: Optional[List[InvoiceItemResponse]] = None
+
     created_at: datetime
     updated_at: datetime
     
     class Config:
-        orm_mode = True
+        from_attributes = True
         exclude = {'created_by_user', 'payments'}

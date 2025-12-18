@@ -24,9 +24,10 @@ class ClientUpdate(ClientBase):
 
 class ClientResponse(ClientBase):
     id: int
+
     created_at: datetime
     updated_at: datetime
     
     class Config:
-        orm_mode = True
+        from_attributes = True
         exclude = {'created_by_user', 'invoices'}

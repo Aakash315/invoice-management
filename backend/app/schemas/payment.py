@@ -16,8 +16,9 @@ class PaymentCreate(PaymentBase):
 class PaymentResponse(PaymentBase):
     id: int
     invoice_id: int
+
     created_at: datetime
     
     class Config:
-        orm_mode = True
+        from_attributes = True
         exclude = {'invoice'}
