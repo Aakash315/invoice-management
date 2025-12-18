@@ -1,0 +1,278 @@
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { invoiceService } from '../../services/invoiceService';
+import {
+  PlusIcon,
+  EyeIcon,
+  PencilIcon,
+  TrashIcon,
+  FunnelIcon,
+} from '@heroicons/react/24/outline';
+import { format } from 'date-fns';
+import toast from 'react-hot-toast';
+import DeleteConfirmModal from '../common/DeleteConfirmModal';
+
+const InvoiceList = () => {
+  const [invoices, setInvoices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState({
+    status: '',
+    payment_status: '',
+  });
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, invoice: null });
+  const navigate = useNavigate();
+
+  const fetchInvoices = async () => {
+    try {
+      setLoading(true);
+      const data = await invoiceService.getAll(filters);
+      setInvoices(data.invoices || []);
+    } catch (error) {
+      toast.error('Failed to fetch invoices');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchInvoices();
+  }, [filters]);
+
+  const handleDelete = async () => {
+    if (deleteModal.invoice) {
+      try {
+        await invoiceService.delete(deleteModal.invoice.id);
+        toast.success('Invoice deleted successfully');
+        setInvoices(invoices.filter((inv) => inv.id !== deleteModal.invoice.id));
+        setDeleteModal({ isOpen: false, invoice: null });
+      } catch (error) {
+        toast.error('Failed to delete invoice');
+      }
+    }
+  };
+
+  const getStatusColor = (status) => {
+    const colors = {
+      draft: 'bg-gray-100 text-gray-800',
+      sent: 'bg-blue-100 text-blue-800',
+      paid: 'bg-green-100 text-green-800',
+      overdue: 'bg-red-100 text-red-800',
+      cancelled: 'bg-gray-100 text-gray-800',
+    };
+    return colors[status] || colors.draft;
+  };
+
+  const getPaymentStatusColor = (status) => {
+    const colors = {
+      unpaid: 'text-red-600',
+      partial: 'text-yellow-600',
+      paid: 'text-green-600',
+    };
+    return colors[status] || colors.unpaid;
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900">Invoices</h1>
+        <Link to="/invoices/new" className="btn-primary flex items-center">
+          <PlusIcon className="h-5 w-5 mr-2" />
+          Create Invoice
+        </Link>
+      </div>
+
+      {/* Filters */}
+      <div className="card">
+        <div className="flex items-center space-x-4">
+          <FunnelIcon className="h-5 w-5 text-gray-400" />
+          <select
+            value={filters.status}
+            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+            className="input-field"
+          >
+            <option value="">All Status</option>
+            <option value="draft">Draft</option>
+            <option value="sent">Sent</option>
+            <option value="paid">Paid</option>
+            <option value="overdue">Overdue</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+
+          <select
+            value={filters.payment_status}
+            onChange={(e) =>
+              setFilters({ ...filters, payment_status: e.target.value })
+            }
+            className="input-field"
+          >
+            <option value="">All Payment Status</option>
+            <option value="unpaid">Unpaid</option>
+            <option value="partial">Partially Paid</option>
+            <option value="paid">Paid</option>
+          </select>
+
+          {(filters.status || filters.payment_status) && (
+            <button
+              onClick={() => setFilters({ status: '', payment_status: '' })}
+              className="text-sm text-primary-600 hover:text-primary-700"
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Invoice Table */}
+      <div className="card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Invoice #
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Client
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Issue Date
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Due Date
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Amount
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Payment
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {invoices.map((invoice) => (
+                <tr key={invoice.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <Link
+                      to={`/invoices/view/${invoice.id}`}
+                      className="text-sm font-medium text-primary-600 hover:text-primary-700"
+                    >
+                      {invoice.invoice_number}
+                    </Link>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {invoice.client?.name || 'N/A'}
+                    </div>
+                    {invoice.client?.company && (
+                      <div className="text-sm text-gray-500">
+                        {invoice.client.company}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {format(new Date(invoice.issue_date), 'dd MMM yyyy')}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {format(new Date(invoice.due_date), 'dd MMM yyyy')}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900">
+                      ₹{invoice.total_amount.toLocaleString()}
+                    </div>
+                    {invoice.balance > 0 && (
+                      <div className="text-sm text-gray-500">
+                        Balance: ₹{invoice.balance.toLocaleString()}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
+                        invoice.status
+                      )}`}
+                    >
+                      {invoice.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`text-sm font-medium ${getPaymentStatusColor(
+                        invoice.payment_status
+                      )}`}
+                    >
+                      {invoice.payment_status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div className="flex items-center justify-end space-x-2">
+                      <button
+                        onClick={() => navigate(`/invoices/view/${invoice.id}`)}
+                        className="text-primary-600 hover:text-primary-700"
+                        title="View"
+                      >
+                        <EyeIcon className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => navigate(`/invoices/edit/${invoice.id}`)}
+                        className="text-gray-600 hover:text-gray-700"
+                        title="Edit"
+                      >
+                        <PencilIcon className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteModal({ isOpen: true, invoice })}
+                        className="text-red-600 hover:text-red-700"
+                        title="Delete"
+                      >
+                        <TrashIcon className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {invoices.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-gray-500 mb-4">No invoices found</p>
+              <Link
+                to="/invoices/new"
+                className="btn-primary inline-flex items-center"
+              >
+                <PlusIcon className="h-5 w-5 mr-2" />
+                Create Your First Invoice
+              </Link>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, invoice: null })}
+        onConfirm={handleDelete}
+        title="Delete Invoice"
+        message={`Are you sure you want to delete invoice "${deleteModal.invoice?.invoice_number}"? This action cannot be undone.`}
+      />
+    </div>
+  );
+};
+
+export default InvoiceList;
