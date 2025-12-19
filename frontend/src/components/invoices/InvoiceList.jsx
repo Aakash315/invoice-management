@@ -15,6 +15,7 @@ import DeleteConfirmModal from '../common/DeleteConfirmModal';
 
 
 const InvoiceList = () => {
+
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -22,11 +23,12 @@ const InvoiceList = () => {
     payment_status: '',
   });
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, invoice: null });
+  const [justUpdated, setJustUpdated] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
   // Check if we just returned from creating/updating an invoice
-  const justReturnedFromForm = location.state?.refresh;
+  const justReturnedFromForm = location.state?.refresh || justUpdated;
 
   const fetchInvoices = async () => {
     try {
@@ -42,9 +44,27 @@ const InvoiceList = () => {
   };
 
 
+
+  useEffect(() => {
+    // Check if we just updated an invoice
+    const invoiceUpdated = sessionStorage.getItem('invoiceUpdated');
+    if (invoiceUpdated === 'true') {
+      setJustUpdated(true);
+      sessionStorage.removeItem('invoiceUpdated');
+    }
+  }, []);
+
+
   useEffect(() => {
     fetchInvoices();
   }, [filters, justReturnedFromForm]);
+
+  // Cleanup effect to reset justUpdated flag after use
+  useEffect(() => {
+    if (justUpdated) {
+      setJustUpdated(false);
+    }
+  }, [justUpdated]);
 
   const handleDelete = async () => {
     if (deleteModal.invoice) {

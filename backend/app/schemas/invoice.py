@@ -33,7 +33,13 @@ class InvoiceBase(BaseModel):
 class InvoiceCreate(InvoiceBase):
     items: List[InvoiceItemCreate]
 
+
 class InvoiceUpdate(BaseModel):
+    client_id: Optional[int] = None
+    issue_date: Optional[date] = None
+    due_date: Optional[date] = None
+    tax_rate: Optional[float] = None
+    discount: Optional[float] = None
     status: Optional[str] = None
     notes: Optional[str] = None
     terms: Optional[str] = None

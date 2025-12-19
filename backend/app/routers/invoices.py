@@ -102,6 +102,7 @@ async def create_invoice(
     invoice.balance = invoice.total_amount - invoice.paid_amount
     return invoice
 
+
 @router.put("/{invoice_id}", response_model=InvoiceResponse)
 async def update_invoice(
     invoice_id: int,
@@ -116,20 +117,30 @@ async def update_invoice(
             detail="Invoice not found"
         )
     
-    # Update simple fields
-    if invoice_data.status:
+    # Update invoice fields if provided
+    if invoice_data.client_id is not None:
+        invoice.client_id = invoice_data.client_id
+    if invoice_data.issue_date is not None:
+        invoice.issue_date = invoice_data.issue_date
+    if invoice_data.due_date is not None:
+        invoice.due_date = invoice_data.due_date
+    if invoice_data.status is not None:
         invoice.status = invoice_data.status
     if invoice_data.notes is not None:
         invoice.notes = invoice_data.notes
     if invoice_data.terms is not None:
         invoice.terms = invoice_data.terms
+    if invoice_data.tax_rate is not None:
+        invoice.tax_rate = invoice_data.tax_rate
+    if invoice_data.discount is not None:
+        invoice.discount = invoice_data.discount
     
     # Update items if provided
-    if invoice_data.items:
+    if invoice_data.items is not None:
         # Delete existing items
         db.query(InvoiceItem).filter(InvoiceItem.invoice_id == invoice.id).delete()
         
-        # Recalculate totals
+        # Recalculate totals based on current items and settings
         subtotal = sum(item.quantity * item.rate for item in invoice_data.items)
         tax_amount = (subtotal * invoice.tax_rate) / 100
         total_amount = subtotal + tax_amount - invoice.discount
@@ -148,6 +159,17 @@ async def update_invoice(
                 amount=item_data.quantity * item_data.rate
             )
             db.add(item)
+    else:
+        # If items not provided, recalculate totals based on existing items and current tax/discount
+        existing_items = db.query(InvoiceItem).filter(InvoiceItem.invoice_id == invoice.id).all()
+        if existing_items:
+            subtotal = sum(item.quantity * item.rate for item in existing_items)
+            tax_amount = (subtotal * invoice.tax_rate) / 100
+            total_amount = subtotal + tax_amount - invoice.discount
+            
+            invoice.subtotal = subtotal
+            invoice.tax_amount = tax_amount
+            invoice.total_amount = total_amount
     
     db.commit()
     db.refresh(invoice)

@@ -55,6 +55,7 @@ const InvoiceForm = () => {
       terms: 'Payment due within 30 days',
     },
     validationSchema,
+
     onSubmit: async (values) => {
       setLoading(true);
       try {
@@ -62,6 +63,8 @@ const InvoiceForm = () => {
         if (id) {
           await invoiceService.update(id, values);
           toast.success('Invoice updated successfully');
+          // Set flag to refresh invoice list
+          sessionStorage.setItem('invoiceUpdated', 'true');
         } else {
           await invoiceService.create(values);
           toast.success('Invoice created successfully');
