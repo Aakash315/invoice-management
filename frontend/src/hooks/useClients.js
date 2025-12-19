@@ -7,12 +7,13 @@ export const useClients = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+
   const fetchClients = async () => {
     try {
       setLoading(true);
       setError(null);
       const data = await clientService.getAll();
-      setClients(data.clients || []);
+      setClients(data || []);
     } catch (err) {
       const errorMessage = err.response?.data?.error || 'Failed to fetch clients';
       setError(errorMessage);
@@ -22,12 +23,13 @@ export const useClients = () => {
     }
   };
 
+
   const createClient = async (clientData) => {
     try {
       const data = await clientService.create(clientData);
-      setClients([data.client, ...clients]);
+      setClients([data, ...clients]);
       toast.success('Client created successfully');
-      return data.client;
+      return data;
     } catch (err) {
       const errorMessage = err.response?.data?.error || 'Failed to create client';
       toast.error(errorMessage);
@@ -35,12 +37,13 @@ export const useClients = () => {
     }
   };
 
+
   const updateClient = async (id, clientData) => {
     try {
       const data = await clientService.update(id, clientData);
-      setClients(clients.map((c) => (c.id === id ? data.client : c)));
+      setClients(clients.map((c) => (c.id === id ? data : c)));
       toast.success('Client updated successfully');
-      return data.client;
+      return data;
     } catch (err) {
       const errorMessage = err.response?.data?.error || 'Failed to update client';
       toast.error(errorMessage);

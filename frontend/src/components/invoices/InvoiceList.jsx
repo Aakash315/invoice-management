@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { invoiceService } from '../../services/invoiceService';
 import {
   PlusIcon,
@@ -12,6 +13,7 @@ import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import DeleteConfirmModal from '../common/DeleteConfirmModal';
 
+
 const InvoiceList = () => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,12 +23,17 @@ const InvoiceList = () => {
   });
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, invoice: null });
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Check if we just returned from creating/updating an invoice
+  const justReturnedFromForm = location.state?.refresh;
 
   const fetchInvoices = async () => {
     try {
       setLoading(true);
+
       const data = await invoiceService.getAll(filters);
-      setInvoices(data.invoices || []);
+      setInvoices(data || []);
     } catch (error) {
       toast.error('Failed to fetch invoices');
     } finally {
@@ -34,9 +41,10 @@ const InvoiceList = () => {
     }
   };
 
+
   useEffect(() => {
     fetchInvoices();
-  }, [filters]);
+  }, [filters, justReturnedFromForm]);
 
   const handleDelete = async () => {
     if (deleteModal.invoice) {
@@ -80,7 +88,7 @@ const InvoiceList = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mt-20">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Invoices</h1>

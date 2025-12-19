@@ -1,5 +1,7 @@
+
+
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import func, extract
 from app.database import get_db
 from app.models.invoice import Invoice
@@ -14,26 +16,35 @@ async def get_statistics(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+
     # Total invoices
     total_invoices = db.query(Invoice).count()
     
-    # Total revenue
+
+    # Total revenue (sum of sent, paid, and overdue invoice amounts)
     total_revenue = db.query(func.sum(Invoice.total_amount)).filter(
-        Invoice.payment_status == "paid"
+        Invoice.status.in_(["sent", "paid", "overdue"])
     ).scalar() or 0
     
-    # Pending amount
+
+
+    # Pending amount (sum of sent and overdue invoices)
     pending_amount = db.query(
         func.sum(Invoice.total_amount - Invoice.paid_amount)
     ).filter(
-        Invoice.payment_status != "paid"
+        Invoice.status.in_(["sent", "overdue"])
     ).scalar() or 0
     
     # Total clients
     total_clients = db.query(Client).count()
     
-    # Recent invoices
-    recent_invoices = db.query(Invoice).order_by(
+
+
+
+    # Recent invoices with client data
+    recent_invoices = db.query(Invoice).options(
+        selectinload(Invoice.client)
+    ).order_by(
         Invoice.created_at.desc()
     ).limit(5).all()
     
@@ -41,11 +52,14 @@ async def get_statistics(
     for invoice in recent_invoices:
         invoice.balance = invoice.total_amount - invoice.paid_amount
     
-    # Monthly revenue (last 6 months)
+
+    # Monthly revenue (last 6 months for sent, paid, and overdue invoices)
     monthly_revenue = db.query(
         extract('month', Invoice.issue_date).label('month'),
         extract('year', Invoice.issue_date).label('year'),
         func.sum(Invoice.total_amount).label('revenue')
+    ).filter(
+        Invoice.status.in_(["sent", "paid", "overdue"])
     ).group_by('month', 'year').order_by('year', 'month').all()
     
     # Invoice status breakdown

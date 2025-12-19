@@ -43,7 +43,7 @@ const ClientList = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mt-20">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Clients</h1>
@@ -73,7 +73,7 @@ const ClientList = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredClients.map((client) => (
           <div key={client.id} className="card hover:shadow-lg transition-shadow">
-            <div className="flex items-start justify-between">
+            <div className="flex items-start justify-between m-5">
               <div className="flex-1">
                 <h3 className="text-lg font-semibold text-gray-900">{client.name}</h3>
                 {client.company && (
@@ -97,7 +97,7 @@ const ClientList = () => {
               </div>
             </div>
 
-            <div className="mt-4 flex items-center space-x-2">
+            <div className="mt-4 flex items-center space-x-2 m-5">
               <button
                 onClick={() => navigate(`/clients/edit/${client.id}`)}
                 className="flex-1 btn-secondary text-sm flex items-center justify-center"

@@ -6,14 +6,13 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 
-const PaymentModal = ({ isOpen, onClose, invoice, onPaymentAdded }) => {
-  if (!isOpen || !invoice) return null;
 
+const PaymentModal = ({ isOpen, onClose, invoice, onPaymentAdded }) => {
   const validationSchema = Yup.object({
     amount: Yup.number()
       .required('Amount is required')
       .min(0.01, 'Amount must be greater than 0')
-      .max(invoice.balance, `Amount cannot exceed balance of ₹${invoice.balance}`),
+      .max(invoice?.balance || 0, `Amount cannot exceed balance of ₹${invoice?.balance || 0}`),
     payment_date: Yup.date().required('Payment date is required'),
     payment_method: Yup.string(),
     reference_number: Yup.string(),
@@ -22,7 +21,7 @@ const PaymentModal = ({ isOpen, onClose, invoice, onPaymentAdded }) => {
 
   const formik = useFormik({
     initialValues: {
-      amount: invoice.balance,
+      amount: invoice?.balance || 0,
       payment_date: format(new Date(), 'yyyy-MM-dd'),
       payment_method: 'bank_transfer',
       reference_number: '',
@@ -41,7 +40,10 @@ const PaymentModal = ({ isOpen, onClose, invoice, onPaymentAdded }) => {
         setSubmitting(false);
       }
     },
+    enableReinitialize: true,
   });
+
+  if (!isOpen || !invoice) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">

@@ -17,7 +17,7 @@ const StatusChart = ({ data }) => {
   }));
 
   return (
-    <div className="card">
+    <div className="card p-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">
         Invoice Status Breakdown
       </h3>

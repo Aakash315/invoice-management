@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { invoiceService } from '../../services/invoiceService';
 import { format } from 'date-fns';
@@ -19,36 +20,43 @@ const InvoiceView = () => {
   const [loading, setLoading] = useState(true);
   const [paymentModal, setPaymentModal] = useState(false);
 
-  const fetchInvoice = async () => {
+
+  const fetchInvoice = useCallback(async () => {
     try {
       setLoading(true);
+
       const data = await invoiceService.getById(id);
-      setInvoice(data.invoice);
+      setInvoice(data);
     } catch (error) {
       toast.error('Failed to fetch invoice');
       navigate('/invoices');
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, navigate]);
+
 
   useEffect(() => {
     fetchInvoice();
-  }, [id]);
+  }, [id, fetchInvoice]);
 
   const handlePaymentAdded = () => {
     setPaymentModal(false);
     fetchInvoice(); // Refresh invoice data
   };
 
+
+
   const handleDownloadPDF = () => {
     try {
+      console.log('Generating PDF for invoice:', invoice);
       generateInvoicePDF(invoice);
       toast.success('PDF downloaded successfully!');
     } catch (error) {
-      toast.error('Failed to download PDF');
+      console.error('PDF generation error:', error);
+      toast.error(`Failed to download PDF: ${error.message}`);
     }
-};
+  };
 
   if (loading) {
     return (
@@ -72,7 +80,7 @@ const InvoiceView = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6 mt-20">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
@@ -111,7 +119,7 @@ const InvoiceView = () => {
       </div>
 
       {/* Invoice Content */}
-      <div className="card">
+      <div className="card p-8">
         {/* Header Section */}
         <div className="flex justify-between items-start mb-8">
           <div>
@@ -294,7 +302,7 @@ const InvoiceView = () => {
 
       {/* Payment Section */}
       {invoice.payment_status !== 'paid' && (
-        <div className="card">
+        <div className="card p-5">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold text-gray-900">

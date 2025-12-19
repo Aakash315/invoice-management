@@ -19,9 +19,21 @@ const ClientForm = () => {
     address: Yup.string(),
     city: Yup.string(),
     state: Yup.string(),
-    pincode: Yup.string().matches(/^\\d{6}$/, 'Invalid pincode'),
-    gstin: Yup.string().matches(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/, 'Invalid GSTIN'),
+
+
+    pincode: Yup.string().test('pincode-optional', 'Invalid pincode (must be 6 digits)', function(value) {
+      if (!value || value.trim() === '') return true; // Optional field
+      return /^\d{6}$/.test(value.trim());
+    }),
+
+    gstin: Yup.string().test('gstin-optional', 'Invalid GSTIN format', function(value) {
+      if (!value || value.trim() === '') return true; // Optional field
+      // Basic GSTIN validation pattern
+      const gstinPattern = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+      return gstinPattern.test(value.trim().toUpperCase());
+    }),
   });
+
 
   const formik = useFormik({
     initialValues: {
@@ -35,6 +47,7 @@ const ClientForm = () => {
       pincode: '',
       gstin: '',
     },
+    enableReinitialize: true,
     validationSchema,
     onSubmit: async (values) => {
       setLoading(true);
@@ -55,22 +68,46 @@ const ClientForm = () => {
     },
   });
 
+
   useEffect(() => {
     if (id) {
       const fetchClient = async () => {
         try {
+
           const data = await clientService.getById(id);
-          formik.setValues(data.client);
+          // Handle different possible response structures
+          const clientData = data.client || data.data || data;
+          if (clientData && typeof clientData === 'object') {
+            // Ensure all required fields exist with safe defaults
+            const safeClientData = {
+              name: clientData.name || '',
+              email: clientData.email || '',
+              phone: clientData.phone || '',
+              company: clientData.company || '',
+              address: clientData.address || '',
+              city: clientData.city || '',
+              state: clientData.state || '',
+              pincode: clientData.pincode || '',
+              gstin: clientData.gstin || '',
+            };
+            formik.setValues(safeClientData);
+          } else {
+            console.error('Invalid client data structure:', data);
+            toast.error('Client not found or invalid data');
+            navigate('/clients');
+          }
         } catch (error) {
+          console.error('Error fetching client:', error);
           toast.error('Failed to fetch client');
           navigate('/clients');
         } finally {
           setInitialLoading(false);
         }
       };
+
       fetchClient();
     }
-  }, [id]);
+  }, [id, navigate]);
 
   if (initialLoading) {
     return (
@@ -81,7 +118,7 @@ const ClientForm = () => {
   }
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-3xl mx-auto mt-20">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">
           {id ? 'Edit Client' : 'Add New Client'}
@@ -90,7 +127,7 @@ const ClientForm = () => {
 
       <form onSubmit={formik.handleSubmit} className="card space-y-6">
         {/* Basic Information */}
-        <div>
+        <div className='m-10'>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             Basic Information
           </h2>
@@ -162,7 +199,7 @@ const ClientForm = () => {
         </div>
 
         {/* Address Information */}
-        <div>
+        <div className='m-10'>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             Address Information
           </h2>
@@ -232,7 +269,7 @@ const ClientForm = () => {
         </div>
 
         {/* Tax Information */}
-        <div>
+        <div className='m-10'>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             Tax Information
           </h2>
@@ -258,7 +295,7 @@ const ClientForm = () => {
         </div>
 
         {/* Actions */}
-        <div className="flex items-center space-x-4 pt-4 border-t">
+        <div className="flex items-center space-x-4 pt-4 border-t m-10">
           <button
             type="submit"
             disabled={loading || !formik.isValid}

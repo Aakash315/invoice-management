@@ -11,7 +11,9 @@ import toast from 'react-hot-toast';
 const InvoiceForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+
   const [clients, setClients] = useState([]);
+  const [clientsLoading, setClientsLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(!!id);
 
@@ -56,6 +58,7 @@ const InvoiceForm = () => {
     onSubmit: async (values) => {
       setLoading(true);
       try {
+
         if (id) {
           await invoiceService.update(id, values);
           toast.success('Invoice updated successfully');
@@ -63,7 +66,7 @@ const InvoiceForm = () => {
           await invoiceService.create(values);
           toast.success('Invoice created successfully');
         }
-        navigate('/invoices');
+        navigate('/invoices', { state: { refresh: true } });
       } catch (error) {
         toast.error(error.response?.data?.error || 'Failed to save invoice');
       } finally {
@@ -72,14 +75,24 @@ const InvoiceForm = () => {
     },
   });
 
+
+
+
+
   // Fetch clients on mount
   useEffect(() => {
     const fetchClients = async () => {
       try {
+        setClientsLoading(true);
         const data = await clientService.getAll();
-        setClients(data.clients || []);
+        // API returns array directly, not wrapped in object
+        const clientsList = Array.isArray(data) ? data : (data.data || []);
+        setClients(clientsList);
       } catch (error) {
         toast.error('Failed to fetch clients');
+        setClients([]); // Set empty array on error
+      } finally {
+        setClientsLoading(false);
       }
     };
     fetchClients();
@@ -89,9 +102,9 @@ const InvoiceForm = () => {
   useEffect(() => {
     if (id) {
       const fetchInvoice = async () => {
+
         try {
-          const data = await invoiceService.getById(id);
-          const invoice = data.invoice;
+          const invoice = await invoiceService.getById(id);
           formik.setValues({
             client_id: invoice.client_id,
             issue_date: invoice.issue_date,
@@ -160,7 +173,7 @@ const InvoiceForm = () => {
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-5xl mx-auto mt-20">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">
           {id ? 'Edit Invoice' : 'Create New Invoice'}
@@ -169,7 +182,7 @@ const InvoiceForm = () => {
 
       <form onSubmit={formik.handleSubmit} className="space-y-6">
         {/* Invoice Details */}
-        <div className="card">
+        <div className="card p-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             Invoice Details
           </h2>
@@ -260,7 +273,7 @@ const InvoiceForm = () => {
         </div>
 
         {/* Line Items */}
-        <div className="card">
+        <div className="card p-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Items</h2>
             <button
@@ -355,7 +368,7 @@ const InvoiceForm = () => {
         </div>
 
         {/* Calculations */}
-        <div className="card">
+        <div className="card p-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Calculations</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -422,7 +435,7 @@ const InvoiceForm = () => {
         </div>
 
         {/* Additional Information */}
-        <div className="card">
+        <div className="card p-8">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             Additional Information
           </h2>

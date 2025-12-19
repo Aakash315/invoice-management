@@ -24,7 +24,7 @@ const StatsCard = ({ title, value, icon, color = 'blue', trend }) => {
   };
 
   return (
-    <div className="card hover:shadow-lg transition-shadow">
+    <div className="card hover:shadow-lg transition-shadow p-6">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-gray-600">{title}</p>
