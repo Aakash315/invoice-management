@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice - {{ company_name }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .email-container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .company-name {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2563eb;
+            margin: 0;
+        }
+        .company-location {
+            color: #666;
+            margin: 5px 0;
+        }
+        .greeting {
+            font-size: 18px;
+            margin: 20px 0;
+        }
+        .invoice-details {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border-left: 4px solid #2563eb;
+        }
+        .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        .invoice-table th,
+        .invoice-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .invoice-table th {
+            background-color: #2563eb;
+            color: white;
+        }
+        .amount-due {
+            background-color: #dc2626;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            text-align: center;
+            color: #666;
+        }
+        .signature {
+            margin: 20px 0;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <h1 class="company-name">{{ company_name }}</h1>
+            <p class="company-location">{{ company_location }}</p>
+        </div>
+
+        <div class="greeting">
+            Dear {{ client_name }},
+        </div>
+
+        <p>Please find attached your invoice <strong>#{{ invoice_number }}</strong> for <strong>₹{{ total_amount }}</strong>. The invoice is due on <strong>{{ due_date }}</strong>. Thank you for your business!</p>
+
+        <div class="invoice-details">
+            <h3>Invoice Particulars:</h3>
+            <table class="invoice-table">
+                <tr>
+                    <th>Invoice Number</th>
+                    <td>{{ invoice_number }}</td>
+                </tr>
+                <tr>
+                    <th>Total Amount</th>
+                    <td>₹{{ total_amount }}</td>
+                </tr>
+                <tr>
+                    <th>Due Date</th>
+                    <td>{{ due_date }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="amount-due">
+            Total Amount Due: ₹{{ total_amount }}
+        </div>
+
+        <p>The detailed invoice is attached for your reference and processing.</p>
+
+        <p>Should you require any clarification or have questions regarding this invoice, please do not hesitate to contact us.</p>
+
+        <p>We appreciate your continued business and thank you for your prompt attention to this matter.</p>
+
+        <div class="signature">
+            <p><strong>Sincerely,</strong></p>
+            <p>{{ company_name }}</p>
+            <p>{{ company_location }}</p>
+        </div>
+
+        <div class="footer">
+            <p>This is an automated email. Please do not reply to this email.</p>
+        </div>
+    </div>
+</body>
+</html>

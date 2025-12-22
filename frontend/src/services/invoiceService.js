@@ -35,4 +35,18 @@ export const invoiceService = {
     const response = await api.post(`/payments/invoice/${invoiceId}`, paymentData);
     return response.data;
   },
+
+  sendInvoiceEmail: async (id, emailData) => {
+    const response = await api.post(`/invoices/${id}/send-email`, emailData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  getEmailHistory: async (id) => {
+    const response = await api.get(`/invoices/${id}/email-history`);
+    return response.data;
+  },
 };

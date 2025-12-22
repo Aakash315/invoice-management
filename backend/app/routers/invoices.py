@@ -1,13 +1,109 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Form, File, UploadFile
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.database import get_db
 from app.models.invoice import Invoice, InvoiceItem
+from app.models.email_history import EmailHistory, EmailStatus
 from app.models.user import User
 from app.schemas.invoice import InvoiceCreate, InvoiceUpdate, InvoiceResponse
+from app.schemas.email_history import EmailHistoryResponse
 from app.utils.dependencies import get_current_user
+from app.utils.mail import send_email
+import tempfile
+import os
+import json
+import uuid
+from datetime import datetime
 
 router = APIRouter(prefix="/invoices", tags=["Invoices"])
+
+# Tracking endpoints for email delivery confirmation
+@router.get("/track/open/{tracking_id}", status_code=status.HTTP_200_OK)
+async def track_email_open(
+    tracking_id: str,
+    db: Session = Depends(get_db)
+):
+    """Track email open events"""
+    email_history = db.query(EmailHistory).filter(EmailHistory.tracking_id == tracking_id).first()
+    if email_history:
+        # Update email status to opened
+        email_history.status = EmailStatus.OPENED
+        email_history.opened_at = datetime.now()
+        db.commit()
+    
+    # Return 1x1 transparent GIF
+    from fastapi.responses import StreamingResponse
+    import io
+    
+    # 1x1 transparent GIF
+    gif_bytes = io.BytesIO(b'GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\x00\x00\x00!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;')
+    
+    return StreamingResponse(
+        gif_bytes,
+        media_type='image/gif',
+        headers={
+            'Content-Length': str(len(gif_bytes.getvalue())),
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+        }
+    )
+
+@router.post("/track/delivery/{tracking_id}")
+async def track_email_delivery(
+    tracking_id: str,
+    status: str,
+    db: Session = Depends(get_db)
+):
+    """Track email delivery status updates"""
+    email_history = db.query(EmailHistory).filter(EmailHistory.tracking_id == tracking_id).first()
+    if not email_history:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Email not found"
+        )
+    
+    # Update status based on delivery webhook
+    if status == "delivered":
+        email_history.status = EmailStatus.DELIVERED
+        email_history.delivered_at = datetime.now()
+    elif status == "bounced":
+        email_history.status = EmailStatus.BOUNCED
+        email_history.bounced_at = datetime.now()
+    
+    db.commit()
+    
+    return {"message": "Delivery status updated"}
+
+@router.get("/{invoice_id}/email-history", response_model=List[EmailHistoryResponse])
+async def get_email_history(
+    invoice_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invoice not found"
+        )
+    
+    # Get email history and add computed fields for frontend
+    email_history_list = invoice.email_history
+    enhanced_history = []
+    
+    for history in email_history_list:
+        # Create enhanced response with computed fields
+        enhanced_history_item = EmailHistoryResponse(
+            **history.__dict__,
+            status_display=history.get_status_display(),
+            status_color=history.get_status_color(),
+            formatted_sent_time=history.get_formatted_sent_time(),
+            delivery_summary=history.get_delivery_summary()
+        )
+        enhanced_history.append(enhanced_history_item)
+    
+    return enhanced_history
 
 @router.get("", response_model=List[InvoiceResponse])
 async def get_invoices(
@@ -102,7 +198,6 @@ async def create_invoice(
     invoice.balance = invoice.total_amount - invoice.paid_amount
     return invoice
 
-
 @router.put("/{invoice_id}", response_model=InvoiceResponse)
 async def update_invoice(
     invoice_id: int,
@@ -194,3 +289,131 @@ async def delete_invoice(
     db.commit()
     
     return None
+
+@router.post("/{invoice_id}/send-email", status_code=status.HTTP_200_OK)
+async def send_invoice_email(
+    invoice_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    to: str = Form(...),
+    subject: str = Form(...),
+    message: str = Form(...),
+    cc: Optional[str] = Form(None),
+    bcc: Optional[str] = Form(None),
+    attachment: Optional[UploadFile] = File(None)
+):
+    invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invoice not found"
+        )
+    
+    # Load client data if exists
+    client_name = "Client"
+    if invoice.client:
+        client_name = invoice.client.name
+    
+    recipients = [to]
+    cc_list = []
+    bcc_list = []
+    
+    if cc:
+        cc_list = cc.split(',')
+        recipients.extend(cc_list)
+    if bcc:
+        bcc_list = bcc.split(',')
+        recipients.extend(bcc_list)
+
+    # Prepare attachment
+    attachment_tuple = None
+    attachment_path = None
+    if attachment:
+        try:
+            # Create a temporary file
+            with tempfile.NamedTemporaryFile(delete=False, suffix=attachment.filename) as tmp:
+                tmp.write(await attachment.read())
+                attachment_path = tmp.name
+                attachment_tuple = (attachment.filename, attachment.content_type, await open(attachment_path, 'rb').read())
+        except Exception as e:
+            print(f"Failed to create temporary file: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to handle attachment."
+            )
+
+    # Prepare invoice data for email template
+    invoice_data = {
+        'company_name': 'Webby Wonder',
+        'company_location': 'Mumbai, India',
+        'client_name': client_name,
+        'invoice_number': invoice.invoice_number,
+        'total_amount': f"{invoice.total_amount:,.2f}",
+        'due_date': invoice.due_date.strftime('%d/%m/%Y') if invoice.due_date else 'N/A'
+    }
+
+    email_history = None
+    # Generate unique tracking ID
+    tracking_id = str(uuid.uuid4())
+    
+    try:
+        await send_email(
+            subject=subject,
+            recipients=recipients,
+            invoice_data=invoice_data,
+            attachment=attachment_tuple,
+            tracking_id=tracking_id
+        )
+
+        # Create email history record
+        email_history = EmailHistory(
+            invoice_id=invoice_id,
+            sent_to=to,  # Primary recipient
+            recipient=to,
+            subject=subject,
+            cc=json.dumps(cc_list) if cc_list else None,
+            bcc=json.dumps(bcc_list) if bcc_list else None,
+            body_preview=message[:500],  # First 500 characters
+            attachment_filename=attachment.filename if attachment else None,
+            status=EmailStatus.SENT,
+            tracking_id=tracking_id,
+            sent_at=datetime.now()
+        )
+        db.add(email_history)
+
+        if invoice.status == "draft":
+            invoice.status = "sent"
+
+        db.commit()
+        db.refresh(email_history)
+
+        return {"message": f"Invoice {invoice.invoice_number} sent to {to} successfully!"}
+    except Exception as e:
+        print(f"Email sending error: {e}")
+        
+        # Create failed email history record
+        email_history = EmailHistory(
+            invoice_id=invoice_id,
+            sent_to=to,  # Primary recipient
+            recipient=to,
+            subject=subject,
+            cc=json.dumps(cc_list) if cc_list else None,
+            bcc=json.dumps(bcc_list) if bcc_list else None,
+            body_preview=message[:500],
+            attachment_filename=attachment.filename if attachment else None,
+            status=EmailStatus.FAILED,
+            tracking_id=tracking_id,
+            error_message=str(e),
+            sent_at=datetime.now()
+        )
+        db.add(email_history)
+        db.commit()
+        
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to send email: {str(e)}"
+        )
+    finally:
+        # Clean up the temporary file
+        if attachment_path and os.path.exists(attachment_path):
+            os.remove(attachment_path)

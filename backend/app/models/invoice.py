@@ -40,6 +40,7 @@ class Invoice(Base):
     created_by_user = relationship("User", back_populates="invoices")
     items = relationship("InvoiceItem", back_populates="invoice", cascade="all, delete-orphan")
     payments = relationship("Payment", back_populates="invoice", cascade="all, delete-orphan")
+    email_history = relationship("EmailHistory", back_populates="invoice", cascade="all, delete-orphan")
 
 class InvoiceItem(Base):
     __tablename__ = "invoice_items"

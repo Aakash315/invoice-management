@@ -1,62 +1,39 @@
+# Email Status Tracking Enhancement TODO
 
-# Invoice Update Fix Plan
+## Phase 1: Backend Enhancements
+- [x] Update EmailHistory model with enhanced status tracking
+- [x] Update EmailHistory schemas
+- [x] Enhance email sending logic with tracking IDs
+- [x] Add tracking endpoints for delivery confirmation
 
-## Information Gathered
-After analyzing the codebase, I identified three main issues causing invoice updates to not be detected:
+## Phase 2: Frontend Improvements  
+- [x] Enhance email history display with better formatting
+- [x] Improve status indicators and tooltips
+- [x] Add delivery confirmation display
+- [x] Enhance resend functionality
 
-1. **Backend Update Logic**: The `update_invoice` function in `backend/app/routers/invoices.py` only updates a subset of fields (status, notes, terms) while ignoring client_id, issue_date, due_date, tax_rate, and discount.
+## Phase 3: Email Template Enhancement
+- [x] Add tracking pixel to email templates
+- [x] Enhance email template with tracking support
 
-2. **Frontend State Management**: The `InvoiceList` component relies on `location.state?.refresh` which is unreliable for detecting when returning from the form.
+## Phase 4: Testing & Validation
+- [x] Test email sending and history display
+- [x] Verify resend functionality
+- [x] Test tracking system integration
 
-3. **Data Propagation Gap**: Frontend sends complete form data but backend silently ignores most fields.
+## Implementation Complete ✅
 
-## Plan - COMPLETED ✅
+All requested features have been successfully implemented:
 
-### Phase 1: Fix Backend Update Logic ✅
-- **File**: `backend/app/routers/invoices.py`
-- **Changes**: 
-  - Updated the `update_invoice` function to handle all form fields (client_id, issue_date, due_date, tax_rate, discount)
-  - Added proper field mapping and validation for required fields
-  - Recalculate totals when items or tax/discount change
-  - Added fallback logic when items are not provided but tax/discount changes
+1. ✅ **Store sent Email status recorded in invoice history** - Enhanced EmailHistory model with comprehensive tracking
+2. ✅ **Send History: Show email log on invoice page** - Enhanced UI with format "Sent to john@example.com on 15 Dec 2024"
+3. ✅ **Resend Option: Easy way to resend invoices** - Enhanced EmailComposeModal with resend functionality
+4. ✅ **Delivery Status: Show if email was delivered, opened, failed** - Comprehensive status tracking with multiple states
 
-### Phase 2: Improve Frontend State Management ✅
-- **File**: `frontend/src/components/invoices/InvoiceList.jsx`
-- **Changes**:
-  - Added `justUpdated` state for reliable refresh detection
-  - Implemented sessionStorage-based refresh mechanism
-  - Added cleanup logic to reset flags after use
-
-- **File**: `frontend/src/components/invoices/InvoiceForm.jsx`
-- **Changes**:
-  - Set sessionStorage flag when updating invoices for reliable cross-component communication
-
-### Phase 3: Enhanced Schema Validation ✅
-- **File**: `backend/app/schemas/invoice.py`
-- **Changes**:
-  - Updated `InvoiceUpdate` schema to include all fields: client_id, issue_date, due_date, tax_rate, discount
-
-## Dependent Files Edited
-1. ✅ `backend/app/routers/invoices.py` - Main backend fix
-2. ✅ `frontend/src/components/invoices/InvoiceList.jsx` - Frontend refresh logic
-3. ✅ `frontend/src/components/invoices/InvoiceForm.jsx` - Update flag setting
-4. ✅ `backend/app/schemas/invoice.py` - Schema validation
-
-## Followup Steps - COMPLETED ✅
-1. ✅ Fixed backend update logic to handle all form fields properly
-2. ✅ Improved frontend refresh mechanism for reliable state detection  
-3. ✅ Enhanced error handling and validation
-
-## Expected Outcome - ACHIEVED ✅
-- Invoice updates are now properly saved to the database with all fields
-- Changes are immediately visible in the invoice list
-- Users see confirmation that their updates were successful
-- More robust state management prevents future refresh issues
-
-## Summary
-All three phases have been completed successfully. The invoice update issue has been resolved through:
-1. **Complete Backend Field Support**: All invoice fields can now be updated
-2. **Reliable Frontend Refresh**: sessionStorage provides more robust state detection than React Router
-3. **Proper Schema Validation**: Backend now accepts all fields that frontend sends
-
-The fix ensures that invoice updates are properly persisted and immediately reflected in the user interface.
+### Key Enhancements:
+- **Enhanced Status Tracking**: pending, sent, delivered, opened, bounced, failed
+- **Email Open Tracking**: Invisible pixel tracking for email opens
+- **Delivery Confirmation**: Webhook support for delivery status updates
+- **Better UX**: Card-based email history display with colored status indicators
+- **Resend Functionality**: Easy resend with pre-filled recipient email
+- **Error Handling**: Enhanced error reporting and status display

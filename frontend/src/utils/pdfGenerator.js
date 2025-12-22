@@ -8,10 +8,12 @@
 import jsPDF from 'jspdf';
 import { format } from 'date-fns';
 
-export const generateInvoicePDF = (invoice) => {
+export const generateInvoicePDF = (invoice, outputType = 'save') => {
   const doc = new jsPDF();
   
   try {
+    // ... (rest of the PDF generation logic remains the same)
+    
     // Company Header
     doc.setFontSize(24);
     doc.setFont('helvetica', 'bold');
@@ -139,9 +141,12 @@ export const generateInvoicePDF = (invoice) => {
     doc.setFontSize(8);
     doc.setTextColor(128, 128, 128);
     doc.text('Thank you for your business!', 105, 280, { align: 'center' });
-    
-    // Save PDF
-    doc.save(`Invoice-${invoice.invoice_number}.pdf`);
+
+    if (outputType === 'blob') {
+      return doc.output('blob');
+    } else {
+      doc.save(`Invoice-${invoice.invoice_number}.pdf`);
+    }
     
   } catch (error) {
     console.error('Error generating PDF:', error);

@@ -8,17 +8,22 @@ import {
   PencilIcon,
   DocumentArrowDownIcon,
   PlusIcon,
+  EnvelopeIcon, // Import EnvelopeIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import PaymentModal from './PaymentModal';
 import { generateInvoicePDF } from '../../utils/pdfGenerator';
+import EmailComposeModal from './EmailComposeModal';
 
 const InvoiceView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [invoice, setInvoice] = useState(null);
+  const [emailHistory, setEmailHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [paymentModal, setPaymentModal] = useState(false);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [resendTo, setResendTo] = useState('');
 
 
   const fetchInvoice = useCallback(async () => {
@@ -35,17 +40,25 @@ const InvoiceView = () => {
     }
   }, [id, navigate]);
 
+  const fetchEmailHistory = useCallback(async () => {
+    try {
+      const data = await invoiceService.getEmailHistory(id);
+      setEmailHistory(data);
+    } catch (error) {
+      toast.error('Failed to fetch email history');
+    }
+  }, [id]);
+
 
   useEffect(() => {
     fetchInvoice();
-  }, [id, fetchInvoice]);
+    fetchEmailHistory();
+  }, [id, fetchInvoice, fetchEmailHistory]);
 
   const handlePaymentAdded = () => {
     setPaymentModal(false);
     fetchInvoice(); // Refresh invoice data
   };
-
-
 
   const handleDownloadPDF = () => {
     try {
@@ -56,6 +69,11 @@ const InvoiceView = () => {
       console.error('PDF generation error:', error);
       toast.error(`Failed to download PDF: ${error.message}`);
     }
+  };
+
+  const handleOpenEmailModal = (email = '') => {
+    setResendTo(email);
+    setIsEmailModalOpen(true);
   };
 
   if (loading) {
@@ -101,6 +119,13 @@ const InvoiceView = () => {
         </div>
 
         <div className="flex items-center space-x-2">
+          <button
+            onClick={handleOpenEmailModal}
+            className="btn-secondary flex items-center"
+          >
+            <EnvelopeIcon className="h-5 w-5 mr-2" />
+            Send via Email
+          </button>
           <button
             onClick={handleDownloadPDF}
             className="btn-secondary flex items-center"
@@ -370,12 +395,93 @@ const InvoiceView = () => {
         </div>
       )}
 
+      {/* Email History */}
+      {emailHistory && emailHistory.length > 0 && (
+        <div className="card">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Email History
+          </h3>
+          <div className="space-y-4">
+            {emailHistory.map((history) => (
+              <div key={history.id} className="border rounded-lg p-4 bg-gray-50">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex-shrink-0">
+                        <div className={`w-3 h-3 rounded-full ${history.status === 'sent' || history.status === 'delivered' || history.status === 'opened' ? 'bg-green-400' : history.status === 'failed' ? 'bg-red-400' : 'bg-yellow-400'}`}></div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900">
+                          Sent to {history.sent_to || history.recipient} on {history.formatted_sent_time || format(new Date(history.sent_at), 'dd MMM yyyy, hh:mm a')}
+                        </p>
+                        <div className="flex items-center space-x-4 mt-1">
+                          <span className="text-xs text-gray-500">
+                            {history.delivery_summary || `Status: ${history.status_display || history.status}`}
+                          </span>
+                          {history.subject && (
+                            <span className="text-xs text-gray-400 truncate max-w-xs">
+                              Subject: {history.subject}
+                            </span>
+                          )}
+                        </div>
+                        {history.error_message && (
+                          <p className="text-xs text-red-600 mt-1">
+                            Error: {history.error_message}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span
+                      className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                        history.status_color || (history.status === 'sent' 
+                          ? 'bg-green-100 text-green-800' 
+                          : history.status === 'failed' 
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-yellow-100 text-yellow-800')
+                      }`}
+                      title={history.delivery_summary}
+                    >
+                      {history.status_display || history.status}
+                    </span>
+                    <button
+                      onClick={() => handleOpenEmailModal(history.sent_to || history.recipient)}
+                      className="text-xs text-primary-600 hover:text-primary-900 font-medium"
+                      title="Resend this email"
+                    >
+                      Resend
+                    </button>
+                  </div>
+                </div>
+                {history.attachment_filename && (
+                  <div className="mt-2 flex items-center text-xs text-gray-500">
+                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" clipRule="evenodd" />
+                    </svg>
+                    {history.attachment_filename}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Payment Modal */}
       <PaymentModal
         isOpen={paymentModal}
         onClose={() => setPaymentModal(false)}
         invoice={invoice}
         onPaymentAdded={handlePaymentAdded}
+      />
+
+      {/* Email Modal */}
+      <EmailComposeModal
+        isOpen={isEmailModalOpen}
+        onClose={() => setIsEmailModalOpen(false)}
+        invoice={invoice}
+        resendTo={resendTo}
       />
     </div>
   );
