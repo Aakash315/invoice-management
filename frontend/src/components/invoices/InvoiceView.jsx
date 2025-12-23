@@ -100,6 +100,23 @@ const InvoiceView = () => {
     return colors[status] || colors.draft;
   };
 
+  const getCurrencySymbol = (currency) => {
+    switch (currency) {
+      case 'INR':
+        return '₹';
+      case 'USD':
+        return '$';
+      case 'EUR':
+        return '€';
+      case 'GBP':
+        return '£';
+      default:
+        return '';
+    }
+  };
+
+  const currencySymbol = getCurrencySymbol(invoice.currency);
+
   return (
     <div className="max-w-5xl mx-auto space-y-6 mt-20">
       {/* Header */}
@@ -255,10 +272,10 @@ const InvoiceView = () => {
                     {item.quantity}
                   </td>
                   <td className="px-4 py-4 text-sm text-gray-900 text-right">
-                    ₹{item.rate.toLocaleString()}
+                    {currencySymbol}{item.rate.toLocaleString()}
                   </td>
                   <td className="px-4 py-4 text-sm text-gray-900 text-right font-medium">
-                    ₹{item.amount.toLocaleString()}
+                    {currencySymbol}{item.amount.toLocaleString()}
                   </td>
                 </tr>
               ))}
@@ -272,27 +289,27 @@ const InvoiceView = () => {
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Subtotal:</span>
               <span className="font-medium">
-                ₹{invoice.subtotal.toLocaleString()}
+                {currencySymbol}{invoice.subtotal.toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Tax ({invoice.tax_rate}%):</span>
               <span className="font-medium">
-                ₹{invoice.tax_amount.toLocaleString()}
+                {currencySymbol}{invoice.tax_amount.toLocaleString()}
               </span>
             </div>
             {invoice.discount > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Discount:</span>
                 <span className="font-medium text-red-600">
-                  -₹{invoice.discount.toLocaleString()}
+                  -{currencySymbol}{invoice.discount.toLocaleString()}
                 </span>
               </div>
             )}
             <div className="border-t pt-2 flex justify-between">
               <span className="font-semibold">Total:</span>
               <span className="font-bold text-xl text-primary-600">
-                ₹{invoice.total_amount.toLocaleString()}
+                {currencySymbol}{invoice.total_amount.toLocaleString()}
               </span>
             </div>
             {invoice.paid_amount > 0 && (
@@ -300,13 +317,13 @@ const InvoiceView = () => {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Paid:</span>
                   <span className="font-medium text-green-600">
-                    ₹{invoice.paid_amount.toLocaleString()}
+                    {currencySymbol}{invoice.paid_amount.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between font-semibold">
                   <span className="text-gray-900">Balance Due:</span>
                   <span className="text-red-600">
-                    ₹{invoice.balance.toLocaleString()}
+                    {currencySymbol}{invoice.balance.toLocaleString()}
                   </span>
                 </div>
               </>
@@ -446,7 +463,7 @@ const InvoiceView = () => {
                 Payment Status
               </h3>
               <p className="text-sm text-gray-600 mt-1">
-                Balance Due: ₹{invoice.balance.toLocaleString()}
+                Balance Due: {currencySymbol}{invoice.balance.toLocaleString()}
               </p>
             </div>
             <button

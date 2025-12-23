@@ -13,7 +13,22 @@ const iconMap = {
   pending: ClockIcon,
 };
 
-const StatsCard = ({ title, value, icon, color = 'blue', trend }) => {
+const getCurrencySymbol = (currency) => {
+  switch (currency) {
+    case 'INR':
+      return '₹';
+    case 'USD':
+      return '$';
+    case 'EUR':
+      return '€';
+    case 'GBP':
+      return '£';
+    default:
+      return '';
+  }
+};
+
+const StatsCard = ({ title, value, icon, color = 'blue', trend, currency }) => {
   const Icon = iconMap[icon] || DocumentTextIcon;
   
   const colorClasses = {
@@ -23,12 +38,14 @@ const StatsCard = ({ title, value, icon, color = 'blue', trend }) => {
     red: 'bg-red-500',
   };
 
+  const currencySymbol = getCurrencySymbol(currency);
+
   return (
     <div className="card hover:shadow-lg transition-shadow p-6">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-2">{value}</p>
+          <p className="text-2xl font-bold text-gray-900 mt-2">{currencySymbol}{value}</p>
           {trend && (
             <p className={`text-sm mt-2 ${trend.positive ? 'text-green-600' : 'text-red-600'}`}>
               {trend.value}

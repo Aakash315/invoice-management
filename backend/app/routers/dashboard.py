@@ -21,19 +21,35 @@ async def get_statistics(
     total_invoices = db.query(Invoice).count()
     
 
-    # Total revenue (sum of sent, paid, and overdue invoice amounts)
-    total_revenue = db.query(func.sum(Invoice.total_amount)).filter(
-        Invoice.status.in_(["sent", "paid", "overdue"])
+    # Multi-currency revenue calculation
+    # For invoices in base currency, use total_amount
+    # For other currencies, use base_currency_amount
+    base_currency = current_user.base_currency or "INR"
+    base_currency_revenue = db.query(func.sum(Invoice.total_amount)).filter(
+        Invoice.status.in_(["sent", "paid", "overdue"]),
+        Invoice.currency == base_currency
     ).scalar() or 0
-    
 
-
-    # Pending amount (sum of sent and overdue invoices)
-    pending_amount = db.query(
-        func.sum(Invoice.total_amount - Invoice.paid_amount)
-    ).filter(
-        Invoice.status.in_(["sent", "overdue"])
+    # Converted revenue from other currencies
+    converted_revenue = db.query(func.sum(Invoice.base_currency_amount)).filter(
+        Invoice.status.in_(["sent", "paid", "overdue"]),
+        Invoice.currency != base_currency
     ).scalar() or 0
+
+    total_revenue = base_currency_revenue + converted_revenue
+
+    # Multi-currency pending amount calculation
+    base_currency_pending = db.query(func.sum(Invoice.total_amount - Invoice.paid_amount)).filter(
+        Invoice.status.in_(["sent", "overdue"]),
+        Invoice.currency == base_currency
+    ).scalar() or 0
+
+    converted_pending = db.query(func.sum(Invoice.base_currency_amount - Invoice.paid_amount)).filter(
+        Invoice.status.in_(["sent", "overdue"]),
+        Invoice.currency != base_currency
+    ).scalar() or 0
+
+    pending_amount = base_currency_pending + converted_pending
     
     # Total clients
     total_clients = db.query(Client).count()
@@ -57,7 +73,7 @@ async def get_statistics(
     monthly_revenue = db.query(
         extract('month', Invoice.issue_date).label('month'),
         extract('year', Invoice.issue_date).label('year'),
-        func.sum(Invoice.total_amount).label('revenue')
+        func.sum(Invoice.base_currency_amount).label('revenue')
     ).filter(
         Invoice.status.in_(["sent", "paid", "overdue"])
     ).group_by('month', 'year').order_by('year', 'month').all()
@@ -73,11 +89,13 @@ async def get_statistics(
             "total_invoices": total_invoices,
             "total_revenue": float(total_revenue),
             "pending_amount": float(pending_amount),
-            "total_clients": total_clients
+            "total_clients": total_clients,
+            "total_revenue_base_currency": base_currency,
+            "pending_amount_base_currency": base_currency,
         },
         "recent_invoices": recent_invoices,
         "monthly_revenue": [
-            {"month": int(r.month), "year": int(r.year), "revenue": float(r.revenue)}
+            {"month": int(r.month), "year": int(r.year), "revenue": float(r.revenue or 0.0)}
             for r in monthly_revenue
         ],
         "status_breakdown": [

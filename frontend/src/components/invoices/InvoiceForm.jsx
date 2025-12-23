@@ -40,6 +40,8 @@ const InvoiceForm = () => {
     discount: Yup.number().min(0),
     notes: Yup.string(),
     terms: Yup.string(),
+    currency: Yup.string().required('Currency is required'),
+    exchange_rate: Yup.number().min(0),
   });
 
   const formik = useFormik({
@@ -53,6 +55,8 @@ const InvoiceForm = () => {
       status: 'draft',
       notes: '',
       terms: 'Payment due within 30 days',
+      currency: 'INR',
+      exchange_rate: 1,
     },
     validationSchema,
 
@@ -118,6 +122,7 @@ const InvoiceForm = () => {
             status: invoice.status,
             notes: invoice.notes || '',
             terms: invoice.terms || '',
+            currency: invoice.currency || 'INR',
           });
         } catch (error) {
           toast.error('Failed to fetch invoice');
@@ -145,6 +150,23 @@ const InvoiceForm = () => {
       total: total.toFixed(2),
     };
   };
+
+  const getCurrencySymbol = (currency) => {
+    switch (currency) {
+      case 'INR':
+        return '₹';
+      case 'USD':
+        return '$';
+      case 'EUR':
+        return '€';
+      case 'GBP':
+        return '£';
+      default:
+        return '';
+    }
+  };
+
+  const currencySymbol = getCurrencySymbol(formik.values.currency);
 
   const totals = calculateTotals();
 
@@ -273,6 +295,38 @@ const InvoiceForm = () => {
               <option value="cancelled">Cancelled</option>
             </select>
           </div>
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Currency
+            </label>
+            <select
+              name="currency"
+              value={formik.values.currency}
+              onChange={formik.handleChange}
+              className="input-field max-w-xs"
+            >
+              <option value="INR">INR</option>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
+            </select>
+          </div>
+          {formik.values.currency !== 'INR' && (
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Exchange Rate (1 {formik.values.currency} to INR)
+              </label>
+              <input
+                type="number"
+                name="exchange_rate"
+                value={formik.values.exchange_rate}
+                onChange={formik.handleChange}
+                min="0"
+                step="0.01"
+                className="input-field max-w-xs"
+              />
+            </div>
+          )}
         </div>
 
         {/* Line Items */}
@@ -327,7 +381,7 @@ const InvoiceForm = () => {
 
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Rate (₹)
+                    Rate ({currencySymbol})
                   </label>
                   <input
                     type="number"
@@ -346,7 +400,7 @@ const InvoiceForm = () => {
                     Amount
                   </label>
                   <div className="input-field bg-gray-50">
-                    ₹{((item.quantity || 0) * (item.rate || 0)).toFixed(2)}
+                    {currencySymbol}{((item.quantity || 0) * (item.rate || 0)).toFixed(2)}
                   </div>
                 </div>
 
@@ -394,7 +448,7 @@ const InvoiceForm = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Discount (₹)
+                  Discount ({currencySymbol})
                 </label>
                 <input
                   type="number"
@@ -411,26 +465,26 @@ const InvoiceForm = () => {
             <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Subtotal:</span>
-                <span className="font-medium">₹{totals.subtotal}</span>
+                <span className="font-medium">{currencySymbol}{totals.subtotal}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">
                   Tax ({formik.values.tax_rate}%):
                 </span>
-                <span className="font-medium">₹{totals.taxAmount}</span>
+                <span className="font-medium">{currencySymbol}{totals.taxAmount}</span>
               </div>
               {formik.values.discount > 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Discount:</span>
                   <span className="font-medium text-red-600">
-                    -₹{formik.values.discount.toFixed(2)}
+                    -{currencySymbol}{formik.values.discount.toFixed(2)}
                   </span>
                 </div>
               )}
               <div className="border-t pt-2 flex justify-between">
                 <span className="font-semibold text-lg">Total:</span>
                 <span className="font-bold text-lg text-primary-600">
-                  ₹{totals.total}
+                  {currencySymbol}{totals.total}
                 </span>
               </div>
             </div>

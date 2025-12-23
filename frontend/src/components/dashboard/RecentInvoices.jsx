@@ -2,6 +2,21 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 
+const getCurrencySymbol = (currency) => {
+  switch (currency) {
+    case 'INR':
+      return '₹';
+    case 'USD':
+      return '$';
+    case 'EUR':
+      return '€';
+    case 'GBP':
+      return '£';
+    default:
+      return '';
+  }
+};
+
 const RecentInvoices = ({ invoices }) => {
   const getStatusColor = (status) => {
     const colors = {
@@ -65,7 +80,7 @@ const RecentInvoices = ({ invoices }) => {
                   {format(new Date(invoice.issue_date), 'dd MMM yyyy')}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  ₹{invoice.total_amount.toLocaleString()}
+                  {getCurrencySymbol(invoice.currency)}{invoice.total_amount.toLocaleString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span

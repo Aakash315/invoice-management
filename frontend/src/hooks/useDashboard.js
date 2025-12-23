@@ -7,6 +7,7 @@ export const useDashboard = () => {
   const [recentInvoices, setRecentInvoices] = useState([]);
   const [monthlyRevenue, setMonthlyRevenue] = useState([]);
   const [statusBreakdown, setStatusBreakdown] = useState([]);
+  const [currencyBreakdown, setCurrencyBreakdown] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -20,6 +21,7 @@ export const useDashboard = () => {
       setRecentInvoices(data.recent_invoices);
       setMonthlyRevenue(data.monthly_revenue);
       setStatusBreakdown(data.status_breakdown);
+      setCurrencyBreakdown(data.currency_breakdown);
     } catch (err) {
       const errorMessage = err.response?.data?.error || 'Failed to fetch dashboard data';
       setError(errorMessage);
@@ -38,6 +40,7 @@ export const useDashboard = () => {
     recentInvoices,
     monthlyRevenue,
     statusBreakdown,
+    currencyBreakdown,
     loading,
     error,
     refetch: fetchDashboardData,

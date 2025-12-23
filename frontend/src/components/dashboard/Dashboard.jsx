@@ -4,6 +4,7 @@ import StatsCard from './StatsCard';
 import RevenueChart from './RevenueChart';
 import StatusChart from './StatusChart';
 import RecentInvoices from './RecentInvoices';
+import CurrencyBreakdown from './CurrencyBreakdown';
 
 const Dashboard = () => {
   const {
@@ -11,6 +12,7 @@ const Dashboard = () => {
     recentInvoices,
     monthlyRevenue,
     statusBreakdown,
+    currencyBreakdown,
     loading,
     error,
   } = useDashboard();
@@ -39,7 +41,8 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
           title="Total Revenue"
-          value={`₹${stats?.total_revenue.toLocaleString() || 0}`}
+          value={`${stats?.total_revenue.toLocaleString() || 0}`}
+          currency={stats?.total_revenue_base_currency}
           icon="revenue"
           color="green"
         />
@@ -57,7 +60,8 @@ const Dashboard = () => {
         />
         <StatsCard
           title="Pending Amount"
-          value={`₹${stats?.pending_amount.toLocaleString() || 0}`}
+          value={`${stats?.pending_amount.toLocaleString() || 0}`}
+          currency={stats?.pending_amount_base_currency}
           icon="pending"
           color="red"
         />
@@ -68,6 +72,9 @@ const Dashboard = () => {
         <RevenueChart data={monthlyRevenue || []} />
         <StatusChart data={statusBreakdown || []} />
       </div>
+
+      {/* Currency Breakdown */}
+      <CurrencyBreakdown data={currencyBreakdown || []} baseCurrency={stats?.total_revenue_base_currency} />
 
       {/* Recent Invoices */}
       <RecentInvoices invoices={recentInvoices || []} />

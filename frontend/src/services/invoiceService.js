@@ -6,6 +6,7 @@ export const invoiceService = {
     if (filters.status) params.append('status', filters.status);
     if (filters.payment_status) params.append('payment_status', filters.payment_status);
     if (filters.client_id) params.append('client_id', filters.client_id);
+    if (filters.currency) params.append('currency', filters.currency);
 
     const response = await api.get(`/invoices?${params.toString()}`);
     return response.data;

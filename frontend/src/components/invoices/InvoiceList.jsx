@@ -24,6 +24,7 @@ const InvoiceList = () => {
     status: '',
     payment_status: '',
     recurring: '', // '', 'true', 'false'
+    currency: '',
   });
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, invoice: null });
   const [justUpdated, setJustUpdated] = useState(false);
@@ -102,6 +103,21 @@ const InvoiceList = () => {
     return colors[status] || colors.unpaid;
   };
 
+  const getCurrencySymbol = (currency) => {
+    switch (currency) {
+      case 'INR':
+        return '₹';
+      case 'USD':
+        return '$';
+      case 'EUR':
+        return '€';
+      case 'GBP':
+        return '£';
+      default:
+        return '';
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -152,6 +168,20 @@ const InvoiceList = () => {
           </select>
 
           <select
+            value={filters.currency}
+            onChange={(e) =>
+              setFilters({ ...filters, currency: e.target.value })
+            }
+            className="input-field"
+          >
+            <option value="">All Currencies</option>
+            <option value="INR">INR</option>
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+            <option value="GBP">GBP</option>
+          </select>
+
+          <select
             value={filters.recurring}
             onChange={(e) =>
               setFilters({ ...filters, recurring: e.target.value })
@@ -163,9 +193,9 @@ const InvoiceList = () => {
             <option value="false">Manual Only</option>
           </select>
 
-          {(filters.status || filters.payment_status || filters.recurring) && (
+          {(filters.status || filters.payment_status || filters.recurring || filters.currency) && (
             <button
-              onClick={() => setFilters({ status: '', payment_status: '', recurring: '' })}
+              onClick={() => setFilters({ status: '', payment_status: '', recurring: '', currency: '' })}
               className="text-sm text-primary-600 hover:text-primary-700"
             >
               Clear Filters
@@ -250,11 +280,11 @@ const InvoiceList = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
-                      ₹{invoice.total_amount.toLocaleString()}
+                      {getCurrencySymbol(invoice.currency)}{invoice.total_amount.toLocaleString()}
                     </div>
                     {invoice.balance > 0 && (
                       <div className="text-sm text-gray-500">
-                        Balance: ₹{invoice.balance.toLocaleString()}
+                        Balance: {getCurrencySymbol(invoice.currency)}{invoice.balance.toLocaleString()}
                       </div>
                     )}
                   </td>

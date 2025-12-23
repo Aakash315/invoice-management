@@ -29,9 +29,11 @@ class InvoiceBase(BaseModel):
     notes: Optional[str] = None
     terms: Optional[str] = None
     status: str = "draft"
+    currency: str = "INR"
 
 class InvoiceCreate(InvoiceBase):
     items: List[InvoiceItemCreate]
+    exchange_rate: Optional[float] = None
 
 
 class InvoiceUpdate(BaseModel):
@@ -44,6 +46,8 @@ class InvoiceUpdate(BaseModel):
     notes: Optional[str] = None
     terms: Optional[str] = None
     items: Optional[List[InvoiceItemCreate]] = None
+    currency: Optional[str] = None
+    exchange_rate: Optional[float] = None
 
 
 

@@ -9,6 +9,7 @@ from app.schemas.invoice import InvoiceCreate, InvoiceUpdate, InvoiceResponse
 from app.schemas.email_history import EmailHistoryResponse
 from app.utils.dependencies import get_current_user
 from app.utils.mail import send_email
+from app.utils.exchange_rates import ExchangeRateManager
 import tempfile
 import os
 import json
@@ -110,6 +111,7 @@ async def get_invoices(
     status: Optional[str] = Query(None),
     payment_status: Optional[str] = Query(None),
     client_id: Optional[int] = Query(None),
+    currency: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -121,6 +123,8 @@ async def get_invoices(
         query = query.filter(Invoice.payment_status == payment_status)
     if client_id:
         query = query.filter(Invoice.client_id == client_id)
+    if currency:
+        query = query.filter(Invoice.currency == currency)
     
     invoices = query.order_by(Invoice.created_at.desc()).all()
     
@@ -160,6 +164,19 @@ async def create_invoice(
     subtotal = sum(item.quantity * item.rate for item in invoice_data.items)
     tax_amount = (subtotal * invoice_data.tax_rate) / 100
     total_amount = subtotal + tax_amount - invoice_data.discount
+
+    # Handle currency conversion
+    base_currency = current_user.base_currency or "INR"
+    exchange_rate = 1.0
+    base_currency_amount = total_amount
+
+    if invoice_data.currency != base_currency:
+        if invoice_data.exchange_rate:
+            exchange_rate = invoice_data.exchange_rate
+        else:
+            rate_manager = ExchangeRateManager(db)
+            exchange_rate = await rate_manager.get_exchange_rate(invoice_data.currency, base_currency)
+        base_currency_amount = total_amount * exchange_rate
     
     # Create invoice
     invoice = Invoice(
@@ -172,6 +189,9 @@ async def create_invoice(
         tax_amount=tax_amount,
         discount=invoice_data.discount,
         total_amount=total_amount,
+        currency=invoice_data.currency,
+        base_currency_amount=base_currency_amount,
+        exchange_rate=exchange_rate,
         status=invoice_data.status,
         notes=invoice_data.notes,
         terms=invoice_data.terms,
@@ -229,7 +249,9 @@ async def update_invoice(
         invoice.tax_rate = invoice_data.tax_rate
     if invoice_data.discount is not None:
         invoice.discount = invoice_data.discount
-    
+    if invoice_data.currency is not None:
+        invoice.currency = invoice_data.currency
+
     # Update items if provided
     if invoice_data.items is not None:
         # Delete existing items
@@ -266,6 +288,22 @@ async def update_invoice(
             invoice.tax_amount = tax_amount
             invoice.total_amount = total_amount
     
+    # Handle currency conversion
+    base_currency = current_user.base_currency or "INR"
+    exchange_rate = 1.0
+    base_currency_amount = invoice.total_amount
+
+    if invoice.currency != base_currency:
+        if invoice_data.exchange_rate:
+            exchange_rate = invoice_data.exchange_rate
+        else:
+            rate_manager = ExchangeRateManager(db)
+            exchange_rate = await rate_manager.get_exchange_rate(invoice.currency, base_currency)
+        base_currency_amount = invoice.total_amount * exchange_rate
+
+    invoice.base_currency_amount = base_currency_amount
+    invoice.exchange_rate = exchange_rate
+
     db.commit()
     db.refresh(invoice)
     

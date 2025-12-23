@@ -20,6 +20,9 @@ class Invoice(Base):
     tax_amount = Column(Float, default=0.0)
     discount = Column(Float, default=0.0)
     total_amount = Column(Float, nullable=False)
+    currency = Column(String(10), default="INR")
+    base_currency_amount = Column(Float)
+    exchange_rate = Column(Float)
     
     # Status
     status = Column(String(20), default="draft")
