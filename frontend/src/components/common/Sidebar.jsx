@@ -5,6 +5,7 @@ import {
   UsersIcon,
   DocumentTextIcon,
   ArrowPathIcon,
+  ChartBarIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 
@@ -14,6 +15,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     { name: 'Clients', href: '/clients', icon: UsersIcon },
     { name: 'Invoices', href: '/invoices', icon: DocumentTextIcon },
     { name: 'Recurring Invoices', href: '/recurring-invoices', icon: ArrowPathIcon },
+    { name: 'Reports', href: '/reports', icon: ChartBarIcon },
   ];
 
   return (

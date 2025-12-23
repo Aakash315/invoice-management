@@ -19,6 +19,7 @@ import InvoiceView from './components/invoices/InvoiceView';
 import RecurringInvoiceList from './components/invoices/RecurringInvoiceList';
 import RecurringInvoiceForm from './components/invoices/RecurringInvoiceForm';
 import RecurringInvoiceView from './components/invoices/RecurringInvoiceView';
+import Reports from './components/reports/Reports';
 
 function App() {
   return (
@@ -57,6 +58,9 @@ function App() {
             <Route path="recurring-invoices/new" element={<RecurringInvoiceForm />} />
             <Route path="recurring-invoices/edit/:id" element={<RecurringInvoiceForm />} />
             <Route path="recurring-invoices/view/:id" element={<RecurringInvoiceView />} />
+
+            {/* Reports Route */}
+            <Route path="reports" element={<Reports />} />
           </Route>
 
           {/* Fallback */}

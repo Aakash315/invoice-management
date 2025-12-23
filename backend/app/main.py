@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
-from app.routers import auth, clients, invoices, payments, dashboard, recurring_invoices
+from app.routers import auth, clients, invoices, payments, dashboard, recurring_invoices, reports
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -29,6 +29,7 @@ app.include_router(invoices.router, prefix="/api")
 app.include_router(payments.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
 app.include_router(recurring_invoices.router, prefix="/api")
+app.include_router(reports.router, prefix="/api")
 
 # Health check endpoint
 @app.get("/api/health")
