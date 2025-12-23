@@ -8,10 +8,12 @@ import {
   PencilIcon,
   TrashIcon,
   FunnelIcon,
+  ArrowPathIcon,
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import DeleteConfirmModal from '../common/DeleteConfirmModal';
+import RecurringBadge from '../common/RecurringBadge';
 
 
 const InvoiceList = () => {
@@ -21,6 +23,7 @@ const InvoiceList = () => {
   const [filters, setFilters] = useState({
     status: '',
     payment_status: '',
+    recurring: '', // '', 'true', 'false'
   });
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, invoice: null });
   const [justUpdated, setJustUpdated] = useState(false);
@@ -119,7 +122,7 @@ const InvoiceList = () => {
       </div>
 
       {/* Filters */}
-      <div className="card">
+      <div className="card p-5">
         <div className="flex items-center space-x-4">
           <FunnelIcon className="h-5 w-5 text-gray-400" />
           <select
@@ -148,9 +151,21 @@ const InvoiceList = () => {
             <option value="paid">Paid</option>
           </select>
 
-          {(filters.status || filters.payment_status) && (
+          <select
+            value={filters.recurring}
+            onChange={(e) =>
+              setFilters({ ...filters, recurring: e.target.value })
+            }
+            className="input-field"
+          >
+            <option value="">All Invoices</option>
+            <option value="true">Recurring Only</option>
+            <option value="false">Manual Only</option>
+          </select>
+
+          {(filters.status || filters.payment_status || filters.recurring) && (
             <button
-              onClick={() => setFilters({ status: '', payment_status: '' })}
+              onClick={() => setFilters({ status: '', payment_status: '', recurring: '' })}
               className="text-sm text-primary-600 hover:text-primary-700"
             >
               Clear Filters
@@ -195,12 +210,22 @@ const InvoiceList = () => {
               {invoices.map((invoice) => (
                 <tr key={invoice.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <Link
-                      to={`/invoices/view/${invoice.id}`}
-                      className="text-sm font-medium text-primary-600 hover:text-primary-700"
-                    >
-                      {invoice.invoice_number}
-                    </Link>
+                    <div className="space-y-1">
+                      <Link
+                        to={`/invoices/view/${invoice.id}`}
+                        className="text-sm font-medium text-primary-600 hover:text-primary-700"
+                      >
+                        {invoice.invoice_number}
+                      </Link>
+                      {invoice.generated_by_template && (
+                        <RecurringBadge 
+                          template={invoice.template}
+                          generatedDate={invoice.created_at}
+                          size="sm"
+                          showTemplateLink={true}
+                        />
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
@@ -209,6 +234,11 @@ const InvoiceList = () => {
                     {invoice.client?.company && (
                       <div className="text-sm text-gray-500">
                         {invoice.client.company}
+                      </div>
+                    )}
+                    {invoice.generated_by_template && invoice.template && (
+                      <div className="text-xs text-blue-600 mt-1">
+                        From: {invoice.template.template_name}
                       </div>
                     )}
                   </td>
@@ -255,6 +285,15 @@ const InvoiceList = () => {
                       >
                         <EyeIcon className="h-5 w-5" />
                       </button>
+                      {invoice.generated_by_template && invoice.template && (
+                        <button
+                          onClick={() => navigate(`/recurring-invoices/view/${invoice.template.id}`)}
+                          className="text-blue-600 hover:text-blue-700"
+                          title="View Template"
+                        >
+                          <ArrowPathIcon className="h-5 w-5" />
+                        </button>
+                      )}
                       <button
                         onClick={() => navigate(`/invoices/edit/${invoice.id}`)}
                         className="text-gray-600 hover:text-gray-700"

@@ -8,12 +8,15 @@ import {
   PencilIcon,
   DocumentArrowDownIcon,
   PlusIcon,
-  EnvelopeIcon, // Import EnvelopeIcon
+  EnvelopeIcon,
+  ArrowPathIcon,
+  EyeIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import PaymentModal from './PaymentModal';
 import { generateInvoicePDF } from '../../utils/pdfGenerator';
 import EmailComposeModal from './EmailComposeModal';
+import RecurringBadge from '../common/RecurringBadge';
 
 const InvoiceView = () => {
   const { id } = useParams();
@@ -119,6 +122,15 @@ const InvoiceView = () => {
         </div>
 
         <div className="flex items-center space-x-2">
+          {invoice.generated_by_template && invoice.template && (
+            <Link
+              to={`/recurring-invoices/view/${invoice.template.id}`}
+              className="btn-secondary flex items-center"
+            >
+              <ArrowPathIcon className="h-5 w-5 mr-2" />
+              View Template
+            </Link>
+          )}
           <button
             onClick={handleOpenEmailModal}
             className="btn-secondary flex items-center"
@@ -324,6 +336,106 @@ const InvoiceView = () => {
           </div>
         )}
       </div>
+
+      {/* Template Information - Only show for recurring invoices */}
+      {invoice.generated_by_template && invoice.template && (
+        <div className="card">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+              <ArrowPathIcon className="h-5 w-5 mr-2 text-blue-600" />
+              Template Information
+            </h3>
+            <Link
+              to={`/recurring-invoices/view/${invoice.template.id}`}
+              className="btn-secondary flex items-center text-sm"
+            >
+              <EyeIcon className="h-4 w-4 mr-1" />
+              View Template
+            </Link>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Template Name</label>
+                  <p className="mt-1 text-sm text-gray-900">{invoice.template.template_name}</p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Recurrence Pattern</label>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {invoice.template.interval_value === 1 
+                      ? invoice.template.frequency.charAt(0).toUpperCase() + invoice.template.frequency.slice(1)
+                      : `Every ${invoice.template.interval_value} ${invoice.template.frequency}${invoice.template.interval_value > 1 ? 's' : ''}`
+                    }
+                    {invoice.template.frequency === 'weekly' && invoice.template.day_of_week !== null && (
+                      <span>
+                        {' '}on {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][invoice.template.day_of_week]}
+                      </span>
+                    )}
+                    {invoice.template.frequency === 'monthly' && invoice.template.day_of_month !== null && (
+                      <span>
+                        {' '}on day {invoice.template.day_of_month}
+                      </span>
+                    )}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Template Status</label>
+                  <span className={`mt-1 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    invoice.template.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {invoice.template.is_active ? 'Active' : 'Paused'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Generated On</label>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {format(new Date(invoice.created_at), 'dd MMM yyyy, hh:mm a')}
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Next Due Date</label>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {format(new Date(invoice.template.next_due_date), 'dd MMM yyyy')}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Total Generated</label>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {invoice.template.generation_count} invoices
+                    {invoice.template.failed_generations > 0 && (
+                      <span className="text-red-600 ml-2">
+                        ({invoice.template.failed_generations} failed)
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {invoice.template.auto_send && (
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center">
+                <EnvelopeIcon className="h-4 w-4 text-blue-600 mr-2" />
+                <span className="text-sm text-blue-800">
+                  <strong>Auto-send enabled:</strong> This template automatically sends generated invoices via email
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Payment Section */}
       {invoice.payment_status !== 'paid' && (

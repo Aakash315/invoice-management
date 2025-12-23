@@ -23,3 +23,4 @@ class Client(Base):
     # Relationships
     created_by_user = relationship("User", back_populates="clients")
     invoices = relationship("Invoice", back_populates="client", cascade="all, delete-orphan")
+    recurring_invoices = relationship("RecurringInvoice", back_populates="client", cascade="all, delete-orphan")

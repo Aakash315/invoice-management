@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Date, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Float, Date, DateTime, ForeignKey, Text, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
@@ -30,6 +30,10 @@ class Invoice(Base):
     notes = Column(Text)
     terms = Column(Text)
     
+    # Recurring Invoice Support
+    template_id = Column(Integer, ForeignKey("recurring_invoices.id"), nullable=True)
+    generated_by_template = Column(Boolean, default=False, nullable=False)
+    
     # Metadata
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -41,6 +45,7 @@ class Invoice(Base):
     items = relationship("InvoiceItem", back_populates="invoice", cascade="all, delete-orphan")
     payments = relationship("Payment", back_populates="invoice", cascade="all, delete-orphan")
     email_history = relationship("EmailHistory", back_populates="invoice", cascade="all, delete-orphan")
+    template = relationship("RecurringInvoice", back_populates="generated_invoices", foreign_keys="Invoice.template_id")
 
 class InvoiceItem(Base):
     __tablename__ = "invoice_items"

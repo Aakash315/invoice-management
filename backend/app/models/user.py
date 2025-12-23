@@ -16,3 +16,4 @@ class User(Base):
     # Relationships
     clients = relationship("Client", back_populates="created_by_user")
     invoices = relationship("Invoice", back_populates="created_by_user")
+    recurring_invoices = relationship("RecurringInvoice", back_populates="created_by_user")
