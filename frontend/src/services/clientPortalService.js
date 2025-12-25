@@ -40,4 +40,9 @@ export const clientPortalService = {
     const response = await clientApi.post('/client-portal/payments/paypal/capture', { order_id: orderId, invoice_id: invoiceId });
     return response.data;
   },
+
+  verifyCashfreeOrder: async (orderId) => {
+    const response = await clientApi.get(`/client-portal/verify/cashfree-order/${orderId}`);
+    return response.data;
+  },
 };

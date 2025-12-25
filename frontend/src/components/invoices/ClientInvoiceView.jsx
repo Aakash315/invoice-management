@@ -17,7 +17,43 @@ const ClientInvoiceView = () => {
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [verificationState, setVerificationState] = useState({
+    isVerifying: false,
+    attempts: 0,
+    lastOrderId: null,
+    maxAttempts: 10,
+    verificationTimeout: null
+  });
   const { isAuthenticated, loading: authLoading, client } = useClientAuth();
+
+  // Utility function to clear URL parameters
+  const clearUrlParameters = useCallback(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('cashfree_order_id');
+    url.searchParams.delete('token');
+    window.history.replaceState({}, document.title, url.toString());
+  }, []);
+
+  // Utility function to check if verification is already in progress
+  const isVerificationInProgress = useCallback((orderId) => {
+    return verificationState.isVerifying && 
+           verificationState.lastOrderId === orderId && 
+           verificationState.attempts < verificationState.maxAttempts;
+  }, [verificationState]);
+
+  // Utility function to reset verification state
+  const resetVerificationState = useCallback(() => {
+    if (verificationState.verificationTimeout) {
+      clearTimeout(verificationState.verificationTimeout);
+    }
+    setVerificationState(prev => ({
+      ...prev,
+      isVerifying: false,
+      attempts: 0,
+      lastOrderId: null,
+      verificationTimeout: null
+    }));
+  }, [verificationState.verificationTimeout]);
 
   const fetchClientInvoice = useCallback(async () => {
     if (!isAuthenticated) {
@@ -37,7 +73,7 @@ const ClientInvoiceView = () => {
       setLoading(false);
     }
   }, [id, navigate, isAuthenticated]);
-
+ 
   useEffect(() => {
     if (!authLoading) {
       fetchClientInvoice();
@@ -76,6 +112,7 @@ const ClientInvoiceView = () => {
         redirectTarget: "_self",
       };
       cashfree.checkout(checkoutOptions);
+
       // window.location.href = order.redirect_url;
     } catch (err) {
       console.error("Cashfree payment initiation failed:", err);
@@ -98,34 +135,170 @@ const ClientInvoiceView = () => {
     }
   };
 
+  const verifyPaymentStatus = useCallback(async (cashfreeOrderId) => {
+    // Check if verification is already in progress or exceeded max attempts
+    if (isVerificationInProgress(cashfreeOrderId)) {
+      console.log("Verification already in progress, skipping...");
+      return;
+    }
+
+    // Check if we've exceeded max attempts
+    if (verificationState.attempts >= verificationState.maxAttempts) {
+      console.log("Max verification attempts reached, stopping verification.");
+      toast.error("Maximum verification attempts reached. Please refresh the page or contact support.", { id: "payment-verification" });
+      clearUrlParameters();
+      resetVerificationState();
+      return;
+    }
+
+    // Set verification in progress
+    setVerificationState(prev => ({
+      ...prev,
+      isVerifying: true,
+      lastOrderId: cashfreeOrderId,
+      attempts: prev.attempts + 1
+    }));
+
+    try {
+      const verificationResult = await clientPortalService.verifyCashfreeOrder(cashfreeOrderId);
+      console.log("Payment verification result:", verificationResult);
+      
+      if (verificationResult.status === "success") {
+        toast.success(verificationResult.message, { id: "payment-verification" });
+        clearUrlParameters();
+        // Refresh invoice data to show updated payment status
+        await fetchClientInvoice();
+        resetVerificationState();
+      } else if (verificationResult.status === "pending") {
+        const attemptsLeft = verificationState.maxAttempts - verificationState.attempts;
+        
+        if (attemptsLeft > 0) {
+          toast.loading(`Payment still pending. ${attemptsLeft} attempts remaining...`, { id: "payment-verification" });
+          
+          // Clear any existing timeout
+          if (verificationState.verificationTimeout) {
+            clearTimeout(verificationState.verificationTimeout);
+          }
+          
+          // Set new timeout for next verification attempt
+          const timeoutId = setTimeout(() => {
+            verifyPaymentStatus(cashfreeOrderId);
+          }, 5000);
+          
+          setVerificationState(prev => ({
+            ...prev,
+            verificationTimeout: timeoutId
+          }));
+        } else {
+          toast.error("Maximum verification attempts reached. Please refresh the page or contact support.", { id: "payment-verification" });
+          clearUrlParameters();
+          resetVerificationState();
+        }
+      } else if (verificationResult.status === "failed") {
+        toast.error(verificationResult.message, { id: "payment-verification" });
+        clearUrlParameters();
+        resetVerificationState();
+      } else {
+        toast.error(verificationResult.message || "Payment verification failed", { id: "payment-verification" });
+        clearUrlParameters();
+        resetVerificationState();
+      }
+    } catch (error) {
+      console.error("Payment verification error:", error);
+      
+      // Check if it's a network error and we can retry
+      const attemptsLeft = verificationState.maxAttempts - verificationState.attempts;
+      
+      if (attemptsLeft > 0 && error.code !== 'NETWORK_ERROR') {
+        // For non-network errors, show retry option
+        toast.error(`Payment verification failed: ${error.message}`, { id: "payment-verification" });
+        clearUrlParameters();
+        resetVerificationState();
+      } else {
+        // For network errors, retry with limits
+        if (attemptsLeft > 0) {
+          toast.loading(`Network error. Retrying... (${attemptsLeft} attempts left)`, { id: "payment-verification" });
+          
+          const timeoutId = setTimeout(() => {
+            verifyPaymentStatus(cashfreeOrderId);
+          }, 5000);
+          
+          setVerificationState(prev => ({
+            ...prev,
+            verificationTimeout: timeoutId
+          }));
+        } else {
+          toast.error("Network verification failed after maximum attempts. Please refresh the page.", { id: "payment-verification" });
+          clearUrlParameters();
+          resetVerificationState();
+        }
+      }
+    }
+  }, [verificationState, fetchClientInvoice, clearUrlParameters, resetVerificationState, isVerificationInProgress]);
+
   // Effect to capture payments or show messages on return
   useEffect(() => {
+    // Skip if still loading or if verification is already in progress
+    if (loading || verificationState.isVerifying) {
+      return;
+    }
+
     const query = new URLSearchParams(window.location.search);
     const cashfreeOrderId = query.get('cashfree_order_id');
     const paypalOrderId = query.get('token');
 
-    if (cashfreeOrderId && !loading) {
+    // Handle Cashfree payment verification
+    if (cashfreeOrderId && !verificationState.isVerifying && 
+        verificationState.lastOrderId !== cashfreeOrderId) {
+      console.log("Starting Cashfree payment verification for order:", cashfreeOrderId);
       toast.success('Returned from Cashfree. Verifying payment status...');
-      navigate(`/portal/invoices/${id}`, { replace: true });
-      fetchClientInvoice();
+      verifyPaymentStatus(cashfreeOrderId);
+      // Don't fetch invoice immediately - let verification handle it
     }
 
-    if (paypalOrderId && !loading) {
+    // Handle PayPal payment capture
+    if (paypalOrderId && !verificationState.isVerifying) {
       const capturePayment = async () => {
         try {
           await clientPortalService.capturePayPalPayment(paypalOrderId, id);
           toast.success('PayPal payment completed successfully!');
+          clearUrlParameters();
           navigate(`/portal/invoices/${id}`, { replace: true });
           fetchClientInvoice();
         } catch (err) {
           console.error("PayPal payment capture failed:", err);
           toast.error(err.response?.data?.detail || 'Failed to capture PayPal payment.');
+          clearUrlParameters();
           navigate(`/portal/invoices/${id}`, { replace: true });
         }
       };
       capturePayment();
     }
-  }, [id, loading, navigate, fetchClientInvoice]);
+  }, [id, loading, verificationState, verifyPaymentStatus, fetchClientInvoice, clearUrlParameters, navigate]);
+
+  // Cleanup effect for verification timeouts
+  useEffect(() => {
+    return () => {
+      // Cleanup timeout on component unmount
+      if (verificationState.verificationTimeout) {
+        clearTimeout(verificationState.verificationTimeout);
+      }
+    };
+  }, [verificationState.verificationTimeout]);
+
+  // Manual retry function for failed verification
+  const handleManualRetry = useCallback(() => {
+    const query = new URLSearchParams(window.location.search);
+    const cashfreeOrderId = query.get('cashfree_order_id');
+    
+    if (cashfreeOrderId) {
+      console.log("Manual retry triggered for order:", cashfreeOrderId);
+      resetVerificationState();
+      setTimeout(() => {
+        verifyPaymentStatus(cashfreeOrderId);
+      }, 100); // Small delay to ensure state is reset
+    }
+  }, [verifyPaymentStatus, resetVerificationState]);
 
   if (loading || authLoading) {
     return (
@@ -207,6 +380,29 @@ const ClientInvoiceView = () => {
         </div>
 
         <div className="flex items-center space-x-2">
+          {/* Payment Verification Status */}
+          {verificationState.isVerifying && (
+            <div className="flex items-center space-x-2 bg-blue-50 px-3 py-2 rounded-md border border-blue-200">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              <span className="text-sm text-blue-700">
+                Verifying payment... ({verificationState.attempts}/{verificationState.maxAttempts})
+              </span>
+            </div>
+          )}
+          
+          {/* Manual Retry Button */}
+          {verificationState.attempts >= verificationState.maxAttempts && 
+           !verificationState.isVerifying && 
+           new URLSearchParams(window.location.search).get('cashfree_order_id') && (
+            <button
+              onClick={handleManualRetry}
+              className="btn-secondary flex items-center bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100"
+            >
+              <span className="h-5 w-5 mr-2">🔄</span>
+              Retry Verification
+            </button>
+          )}
+
           {invoice.payment_status !== 'paid' && invoice.balance > 0 && (
             <>
               <button

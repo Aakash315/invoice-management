@@ -34,6 +34,11 @@ class CashfreeOrderCreate(BaseModel):
 class CashfreeOrderResponse(BaseModel):
     payment_session_id: str
 
+class CashfreeOrderVerifyResponse(BaseModel):
+    status: str
+    message: str
+    payment_status: str = None
+
 @router.get("/dashboard", response_model=ClientDashboardResponse)
 def get_client_dashboard(
     db: Session = Depends(get_db),
@@ -189,14 +194,8 @@ async def create_cashfree_order(
             detail="Invoice is already fully paid."
         )
     
-    order_id = f"order_{uuid.uuid4()}"
+    order_id = f"inv_{invoice.id}_{uuid.uuid4()}"
     return_url = f"http://localhost:3000/portal/invoices/{invoice.id}?cashfree_order_id={order_id}"
-
-    # cashfree.PGFetchOrder("order_id").then((response) => {
-    #     console.log("Order fetched successfully:", response.data);
-    # }).catch((error) => {
-    #     console.error("Error", error.response.data.message);
-    # })
 
     headers = {
         "Content-Type": "application/json",
@@ -228,7 +227,7 @@ async def create_cashfree_order(
             cashfree_order = response.json()
             
             payment_session_id = cashfree_order.get("payment_session_id")
-            print(payment_session_id)
+            # print(payment_session_id)
             if not payment_session_id:
                 raise HTTPException(status_code=500, detail="Cashfree did not return a payment session ID.")
 
@@ -436,4 +435,168 @@ async def capture_paypal_payment(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to capture PayPal payment."
+        )
+
+@router.get("/verify/cashfree-order/{order_id}", response_model=CashfreeOrderVerifyResponse)
+async def verify_cashfree_order(
+    order_id: str,
+    db: Session = Depends(get_db),
+    current_client: Client = Depends(get_current_client)
+):
+    """
+    Verify Cashfree order status and update payment records accordingly.
+    """
+    if not settings.CASHFREE_APP_ID or not settings.CASHFREE_SECRET_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Cashfree gateway is not configured."
+        )
+
+    headers = {
+        "Content-Type": "application/json",
+        "x-api-version": "2025-01-01",
+        "x-client-id": settings.CASHFREE_APP_ID,
+        "x-client-secret": settings.CASHFREE_SECRET_KEY,
+    }
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{settings.CASHFREE_BASE_URL}/pg/orders/{order_id}",
+                headers=headers
+            )
+            response.raise_for_status()
+            cashfree_order = response.json()
+            
+            order_status = cashfree_order.get("order_status")
+            cf_order_id = cashfree_order.get("cf_order_id")
+            order_amount = cashfree_order.get("order_amount", 0)
+            
+            print(f"Cashfree order verification: Order {order_id} status: {order_status}")
+
+            # Handle different order statuses
+            if order_status == "PAID":
+                # Check if payment already exists to prevent duplicates
+                existing_payment = db.query(Payment).filter(
+                    Payment.gateway_payment_id == cf_order_id,
+                    Payment.gateway_name == "cashfree"
+                ).first()
+
+                if existing_payment:
+                    return CashfreeOrderVerifyResponse(
+                        status="success",
+                        message="Payment already processed.",
+                        payment_status="paid"
+                    )
+
+                # Extract invoice ID from order ID format: "inv_{invoice_id}_{uuid}"
+                invoice_id = None
+                if order_id.startswith("inv_"):
+                    try:
+                        parts = order_id.split("_")
+                        if len(parts) >= 2:
+                            invoice_id = int(parts[1])
+                    except (ValueError, IndexError):
+                        pass
+
+                # Find the invoice associated with this order
+                invoice = None
+                if invoice_id:
+                    invoice = db.query(Invoice).filter(
+                        Invoice.id == invoice_id,
+                        Invoice.client_id == current_client.id
+                    ).first()
+
+                if not invoice:
+                    # Fallback: Try to find invoice by amount and client
+                    client_invoices = db.query(Invoice).filter(
+                        Invoice.client_id == current_client.id,
+                        Invoice.total_amount >= order_amount * 0.99,  # Allow small rounding differences
+                        Invoice.payment_status.in_(["pending", "partial", "overdue"])
+                    ).all()
+
+                    if not client_invoices:
+                        return CashfreeOrderVerifyResponse(
+                            status="error",
+                            message="Could not find matching invoice for this payment."
+                        )
+
+                    # Use the most recent unpaid invoice that matches the amount
+                    for inv in client_invoices:
+                        if inv.balance >= order_amount:
+                            invoice = inv
+                            break
+                    
+                    if not invoice:
+                        invoice = client_invoices[0]  # Use the first available as fallback
+
+                # Create payment record
+                payment = Payment(
+                    invoice_id=invoice.id,
+                    payment_date=date.today(),
+                    amount=order_amount,
+                    payment_method="Online - Cashfree",
+                    reference_number=order_id,
+                    gateway_payment_id=cf_order_id,
+                    gateway_name="cashfree",
+                    notes=f"Cashfree payment verified automatically"
+                )
+                db.add(payment)
+
+                # Update invoice status and amounts
+                invoice.paid_amount += order_amount
+                if invoice.paid_amount >= invoice.total_amount:
+                    invoice.payment_status = "paid"
+                    invoice.status = "paid"
+                elif invoice.paid_amount > 0:
+                    invoice.payment_status = "partial"
+                
+                db.commit()
+                db.refresh(payment)
+                db.refresh(invoice)
+
+                return CashfreeOrderVerifyResponse(
+                    status="success",
+                    message="Payment verified and recorded successfully.",
+                    payment_status=invoice.payment_status
+                )
+
+            elif order_status == "ACTIVE":
+                return CashfreeOrderVerifyResponse(
+                    status="pending",
+                    message="Payment is still pending. Please wait or try again later.",
+                    payment_status="pending"
+                )
+
+            elif order_status in ["EXPIRED", "TERMINATED"]:
+                return CashfreeOrderVerifyResponse(
+                    status="failed",
+                    message=f"Payment order {order_status.lower()}. Please try again.",
+                    payment_status="failed"
+                )
+
+            else:
+                return CashfreeOrderVerifyResponse(
+                    status="unknown",
+                    message=f"Unknown order status: {order_status}",
+                    payment_status="unknown"
+                )
+
+    except httpx.HTTPStatusError as e:
+        print(f"Error verifying Cashfree order: {e.response.text}")
+        if e.response.status_code == 404:
+            return CashfreeOrderVerifyResponse(
+                status="error",
+                message="Order not found. It may have been cancelled or expired."
+            )
+        else:
+            raise HTTPException(
+                status_code=e.response.status_code,
+                detail=f"Cashfree API error: {e.response.json().get('message', 'Unknown error')}"
+            )
+    except Exception as e:
+        print(f"Error verifying Cashfree order: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to verify Cashfree order."
         )
