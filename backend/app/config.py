@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     CASHFREE_APP_ID: Optional[str] = None
     CASHFREE_SECRET_KEY: Optional[str] = None
     CASHFREE_BASE_URL: str = "https://sandbox.cashfree.com"
+    CASHFREE_CHECKOUT_URL: Optional[str] = "https://checkout.sandbox.cashfree.com"
+    CASHFREE_WEBHOOK_SECRET: Optional[str] = None
     PAYPAL_CLIENT_ID: Optional[str] = None
     PAYPAL_CLIENT_SECRET: Optional[str] = None
     PAYPAL_BASE_URL: str = "https://api-m.sandbox.paypal.com" # Default to sandbox

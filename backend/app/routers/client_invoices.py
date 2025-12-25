@@ -32,7 +32,7 @@ class CashfreeOrderCreate(BaseModel):
     amount: float
 
 class CashfreeOrderResponse(BaseModel):
-    redirect_url: str
+    payment_session_id: str
 
 @router.get("/dashboard", response_model=ClientDashboardResponse)
 def get_client_dashboard(
@@ -192,6 +192,12 @@ async def create_cashfree_order(
     order_id = f"order_{uuid.uuid4()}"
     return_url = f"http://localhost:3000/portal/invoices/{invoice.id}?cashfree_order_id={order_id}"
 
+    # cashfree.PGFetchOrder("order_id").then((response) => {
+    #     console.log("Order fetched successfully:", response.data);
+    # }).catch((error) => {
+    #     console.error("Error", error.response.data.message);
+    # })
+
     headers = {
         "Content-Type": "application/json",
         "x-api-version": "2022-09-01",
@@ -222,12 +228,11 @@ async def create_cashfree_order(
             cashfree_order = response.json()
             
             payment_session_id = cashfree_order.get("payment_session_id")
+            print(payment_session_id)
             if not payment_session_id:
                 raise HTTPException(status_code=500, detail="Cashfree did not return a payment session ID.")
 
-            redirect_url = f"https://checkout.cashfree.com/pg/{payment_session_id}"
-            
-            return CashfreeOrderResponse(redirect_url=redirect_url)
+            return CashfreeOrderResponse(payment_session_id=payment_session_id)
 
     except httpx.HTTPStatusError as e:
         print(f"Error creating Cashfree order: {e.response.text}")

@@ -9,6 +9,7 @@ import {
 import toast from 'react-hot-toast';
 import { generateInvoicePDF } from '../../utils/pdfGenerator';
 import { useClientAuth } from '../../hooks/useClientAuth';
+import { load } from "@cashfreepayments/cashfree-js";
 
 const ClientInvoiceView = () => {
   const { id } = useParams();
@@ -59,13 +60,23 @@ const ClientInvoiceView = () => {
 
   const handleCashfreePayment = async () => {
     if (!invoice || !client) {
-        toast.error('Invoice or client data missing for payment.');
-        return;
+      toast.error('Invoice or client data missing for payment.');
+      return;
     }
 
     try {
       const order = await clientPortalService.createCashfreeOrder(invoice.id, invoice.balance);
-      window.location.href = order.redirect_url;
+
+      const cashfree = await load({
+        mode: "sandbox" //or production
+      });
+
+      let checkoutOptions = {
+        paymentSessionId: order.payment_session_id,
+        redirectTarget: "_self",
+      };
+      cashfree.checkout(checkoutOptions);
+      // window.location.href = order.redirect_url;
     } catch (err) {
       console.error("Cashfree payment initiation failed:", err);
       toast.error(err.response?.data?.detail || 'Failed to initiate payment.');
@@ -92,27 +103,27 @@ const ClientInvoiceView = () => {
     const query = new URLSearchParams(window.location.search);
     const cashfreeOrderId = query.get('cashfree_order_id');
     const paypalOrderId = query.get('token');
-    
+
     if (cashfreeOrderId && !loading) {
-        toast.success('Returned from Cashfree. Verifying payment status...');
-        navigate(`/portal/invoices/${id}`, { replace: true });
-        fetchClientInvoice();
+      toast.success('Returned from Cashfree. Verifying payment status...');
+      navigate(`/portal/invoices/${id}`, { replace: true });
+      fetchClientInvoice();
     }
-    
+
     if (paypalOrderId && !loading) {
-        const capturePayment = async () => {
-          try {
-            await clientPortalService.capturePayPalPayment(paypalOrderId, id);
-            toast.success('PayPal payment completed successfully!');
-            navigate(`/portal/invoices/${id}`, { replace: true });
-            fetchClientInvoice();
-          } catch (err) {
-            console.error("PayPal payment capture failed:", err);
-            toast.error(err.response?.data?.detail || 'Failed to capture PayPal payment.');
-            navigate(`/portal/invoices/${id}`, { replace: true });
-          }
-        };
-        capturePayment();
+      const capturePayment = async () => {
+        try {
+          await clientPortalService.capturePayPalPayment(paypalOrderId, id);
+          toast.success('PayPal payment completed successfully!');
+          navigate(`/portal/invoices/${id}`, { replace: true });
+          fetchClientInvoice();
+        } catch (err) {
+          console.error("PayPal payment capture failed:", err);
+          toast.error(err.response?.data?.detail || 'Failed to capture PayPal payment.');
+          navigate(`/portal/invoices/${id}`, { replace: true });
+        }
+      };
+      capturePayment();
     }
   }, [id, loading, navigate, fetchClientInvoice]);
 
