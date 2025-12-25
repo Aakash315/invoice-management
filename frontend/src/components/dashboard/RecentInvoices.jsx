@@ -17,7 +17,7 @@ const getCurrencySymbol = (currency) => {
   }
 };
 
-const RecentInvoices = ({ invoices }) => {
+const RecentInvoices = ({ invoices, basePath = '/invoices' }) => {
   const getStatusColor = (status) => {
     const colors = {
       draft: 'bg-gray-100 text-gray-800',
@@ -34,7 +34,7 @@ const RecentInvoices = ({ invoices }) => {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900">Recent Invoices</h3>
         <Link
-          to="/invoices"
+          to={basePath}
           className="text-sm text-primary-600 hover:text-primary-700"
         >
           View All
@@ -63,36 +63,42 @@ const RecentInvoices = ({ invoices }) => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {invoices.map((invoice) => (
-              <tr key={invoice.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  <Link
-                    to={`/invoices/view/${invoice.id}`}
-                    className="text-primary-600 hover:text-primary-700"
-                  >
-                    {invoice.invoice_number}
-                  </Link>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {invoice.client?.name || 'N/A'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {format(new Date(invoice.issue_date), 'dd MMM yyyy')}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {getCurrencySymbol(invoice.currency)}{invoice.total_amount.toLocaleString()}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
-                      invoice.status
-                    )}`}
-                  >
-                    {invoice.status}
-                  </span>
-                </td>
-              </tr>
-            ))}
+            {invoices.map((invoice) => {
+              const viewUrl = basePath === '/portal/invoices'
+                ? `${basePath}/${invoice.id}`
+                : `/invoices/view/${invoice.id}`;
+
+              return (
+                <tr key={invoice.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <Link
+                      to={viewUrl}
+                      className="text-primary-600 hover:text-primary-700"
+                    >
+                      {invoice.invoice_number}
+                    </Link>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {invoice.client?.name || 'N/A'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {format(new Date(invoice.issue_date), 'dd MMM yyyy')}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {getCurrencySymbol(invoice.currency)}{invoice.total_amount.toLocaleString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
+                        invoice.status
+                      )}`}
+                    >
+                      {invoice.status}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
 

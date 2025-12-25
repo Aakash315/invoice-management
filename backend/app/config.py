@@ -17,6 +17,12 @@ class Settings(BaseSettings):
     MAIL_PORT: int
     MAIL_SERVER: str
     MAIL_FROM_NAME: str
+    CASHFREE_APP_ID: Optional[str] = None
+    CASHFREE_SECRET_KEY: Optional[str] = None
+    CASHFREE_BASE_URL: str = "https://sandbox.cashfree.com"
+    PAYPAL_CLIENT_ID: Optional[str] = None
+    PAYPAL_CLIENT_SECRET: Optional[str] = None
+    PAYPAL_BASE_URL: str = "https://api-m.sandbox.paypal.com" # Default to sandbox
     
     model_config = {
         "env_file": ".env"

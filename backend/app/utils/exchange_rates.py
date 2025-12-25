@@ -6,7 +6,7 @@ class ExchangeRateManager:
     def __init__(self, db: Session):
         self.db = db
 
-    async def get_exchange_rate(self, from_currency: str, to_currency: str) -> float:
+    def get_exchange_rate(self, from_currency: str, to_currency: str) -> float:
         if from_currency == to_currency:
             return 1.0
 

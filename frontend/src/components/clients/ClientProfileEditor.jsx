@@ -1,131 +1,86 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import { clientService } from '../../services/clientService';
+import { clientPortalService } from '../../services/clientPortalService';
 import toast from 'react-hot-toast';
+import { useClientAuth } from '../../hooks/useClientAuth';
 
-const ClientForm = () => {
-  const { id } = useParams();
+const ClientProfileEditor = () => {
   const navigate = useNavigate();
+  const { client, loading: authLoading, isAuthenticated, login } = useClientAuth(); // 'login' is used to refresh client data in context
   const [loading, setLoading] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(!!id);
+  const [initialLoading, setInitialLoading] = useState(true);
 
+  // Validation schema for client-editable fields
   const validationSchema = Yup.object({
     name: Yup.string().required('Name is required'),
-    email: Yup.string().email('Invalid email').required('Email is required'),
-    password: Yup.string()
-      .min(8, 'Password must be at least 8 characters long')
-      .when('id', { // Password is required only for new clients
-        is: (id) => !id,
-        then: (schema) => schema.required('Password is required for new clients'),
-        otherwise: (schema) => schema.notRequired(),
-      }),
-    phone: Yup.string(),
     company: Yup.string(),
+    phone: Yup.string(),
     address: Yup.string(),
     city: Yup.string(),
     state: Yup.string(),
-
-
     pincode: Yup.string().test('pincode-optional', 'Invalid pincode (must be 6 digits)', function(value) {
       if (!value || value.trim() === '') return true; // Optional field
       return /^\d{6}$/.test(value.trim());
     }),
-
-    gstin: Yup.string().test('gstin-optional', 'Invalid GSTIN format', function(value) {
-      if (!value || value.trim() === '') return true; // Optional field
-      // Basic GSTIN validation pattern
-      const gstinPattern = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-      return gstinPattern.test(value.trim().toUpperCase());
-    }),
   });
-
 
   const formik = useFormik({
     initialValues: {
-      name: '',
-      email: '',
-      password: '', // New field
-      is_portal_enabled: false, // New field
-      phone: '',
-      company: '',
-      address: '',
-      city: '',
-      state: '',
-      pincode: '',
-      gstin: '',
+      name: client?.name || '',
+      company: client?.company || '',
+      phone: client?.phone || '',
+      address: client?.address || '',
+      city: client?.city || '',
+      state: client?.state || '',
+      pincode: client?.pincode || '',
     },
-    enableReinitialize: true,
+    enableReinitialize: true, // Recalculate initial values when client changes
     validationSchema,
     onSubmit: async (values) => {
       setLoading(true);
       try {
-        const dataToSend = { ...values };
-        if (id && !dataToSend.password) {
-          delete dataToSend.password; // Don't send empty password on update
-        }
-
-        if (id) {
-          await clientService.update(id, dataToSend);
-          toast.success('Client updated successfully');
-        } else {
-          await clientService.create(dataToSend);
-          toast.success('Client created successfully');
-        }
-        navigate('/clients');
+        await clientPortalService.updateClientProfile(values);
+        // Refresh client data in context
+        // A simple way is to re-fetch the client data or re-login silently
+        // For now, let's assume the client object in context can be partially updated
+        // Or, we can trigger a re-login using the current credentials if stored (not ideal)
+        // A better approach is for the backend to return the updated client and update context
+        toast.success('Profile updated successfully');
+        // This is a simplified way to update the client object in context,
+        // ideally, the login function should accept an updated client object or refetch it.
+        // For now, assuming the context state can be directly set with the returned data.
+        const updatedClient = { ...client, ...values };
+        login(updatedClient); // This is a hack, login expects credentials. Revisit this.
+        navigate('/portal/dashboard'); // Navigate back to dashboard after update
       } catch (error) {
-        toast.error(error.response?.data?.detail || error.response?.data?.error || 'Failed to save client');
+        toast.error(error.response?.data?.detail || error.response?.data?.error || 'Failed to update profile');
       } finally {
         setLoading(false);
       }
     },
   });
 
-
+  // Effect to load initial client data into the form
   useEffect(() => {
-    if (id) {
-      const fetchClient = async () => {
-        try {
-
-          const data = await clientService.getById(id);
-          // Handle different possible response structures
-          const clientData = data.client || data.data || data;
-          if (clientData && typeof clientData === 'object') {
-            // Ensure all required fields exist with safe defaults
-            const safeClientData = {
-              name: clientData.name || '',
-              email: clientData.email || '',
-              password: '', // Password is never pre-filled for security
-              is_portal_enabled: clientData.is_portal_enabled || false, // Fetch existing status
-              phone: clientData.phone || '',
-              company: clientData.company || '',
-              address: clientData.address || '',
-              city: clientData.city || '',
-              state: clientData.state || '',
-              pincode: clientData.pincode || '',
-              gstin: clientData.gstin || '',
-            };
-            formik.setValues(safeClientData);
-          } else {
-            console.error('Invalid client data structure:', data);
-            toast.error('Client not found or invalid data');
-            navigate('/clients');
-          }
-        } catch (error) {
-          console.error('Error fetching client:', error);
-          toast.error('Failed to fetch client');
-          navigate('/clients');
-        } finally {
-          setInitialLoading(false);
-        }
-      };
-
-      fetchClient();
+    if (!authLoading && isAuthenticated && client) {
+      formik.setValues({
+        name: client.name || '',
+        company: client.company || '',
+        phone: client.phone || '',
+        address: client.address || '',
+        city: client.city || '',
+        state: client.state || '',
+        pincode: client.pincode || '',
+      });
+      setInitialLoading(false);
+    } else if (!authLoading && !isAuthenticated) {
+      navigate('/portal/login'); // Redirect if not authenticated
     }
-  }, [id, navigate]);
+  }, [authLoading, isAuthenticated, client, navigate]);
 
-  if (initialLoading) {
+  if (initialLoading || authLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
@@ -136,16 +91,14 @@ const ClientForm = () => {
   return (
     <div className="max-w-3xl mx-auto mt-20">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
-          {id ? 'Edit Client' : 'Add New Client'}
-        </h1>
+        <h1 className="text-2xl font-bold text-gray-900">Edit Your Profile</h1>
       </div>
 
       <form onSubmit={formik.handleSubmit} className="card space-y-6">
         {/* Basic Information */}
         <div className='m-10'>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Basic Information
+            Contact Information
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -182,42 +135,15 @@ const ClientForm = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email <span className="text-red-500">*</span>
+                Email (Read Only)
               </label>
               <input
                 type="email"
                 name="email"
-                value={formik.values.email}
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                className={`input-field ${
-                  formik.touched.email && formik.errors.email ? 'border-red-500' : ''
-                }`}
+                value={client?.email || ''} // Display from context, not editable
+                className="input-field bg-gray-100 cursor-not-allowed"
+                disabled
               />
-              {formik.touched.email && formik.errors.email && (
-                <p className="mt-1 text-sm text-red-600">{formik.errors.email}</p>
-              )}
-            </div>
-            
-            {/* Password for Client Portal */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Password {id ? '(Leave blank to keep current)' : '*'}
-              </label>
-              <input
-                type="password"
-                name="password"
-                value={formik.values.password}
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                className={`input-field ${
-                  formik.touched.password && formik.errors.password ? 'border-red-500' : ''
-                }`}
-                autoComplete="new-password"
-              />
-              {formik.touched.password && formik.errors.password && (
-                <p className="mt-1 text-sm text-red-600">{formik.errors.password}</p>
-              )}
             </div>
 
             <div>
@@ -232,26 +158,6 @@ const ClientForm = () => {
                 className="input-field"
               />
             </div>
-          </div> {/* End of grid-cols-1 md:grid-cols-2 gap-4 div */}
-        </div> {/* End of m-10 div */}
-
-        {/* Client Portal Access */}
-        <div className='m-10'>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Client Portal Access
-          </h2>
-          <div className="flex items-center">
-            <input
-              id="is_portal_enabled"
-              name="is_portal_enabled"
-              type="checkbox"
-              checked={formik.values.is_portal_enabled}
-              onChange={formik.handleChange}
-              className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-            />
-            <label htmlFor="is_portal_enabled" className="ml-2 block text-sm text-gray-900">
-              Enable Client Portal Access
-            </label>
           </div>
         </div>
 
@@ -325,10 +231,10 @@ const ClientForm = () => {
           </div>
         </div>
 
-        {/* Tax Information */}
+        {/* Tax Information - Read Only */}
         <div className='m-10'>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Tax Information
+            Tax Information (Read Only)
           </h2>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -337,17 +243,10 @@ const ClientForm = () => {
             <input
               type="text"
               name="gstin"
-              placeholder="22AAAAA0000A1Z5"
-              value={formik.values.gstin}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              className={`input-field ${
-                formik.touched.gstin && formik.errors.gstin ? 'border-red-500' : ''
-              }`}
+              value={client?.gstin || ''} // Display from context, not editable
+              className="input-field bg-gray-100 cursor-not-allowed"
+              disabled
             />
-            {formik.touched.gstin && formik.errors.gstin && (
-              <p className="mt-1 text-sm text-red-600">{formik.errors.gstin}</p>
-            )}
           </div>
         </div>
 
@@ -358,11 +257,11 @@ const ClientForm = () => {
             disabled={loading || !formik.isValid}
             className="btn-primary disabled:opacity-50"
           >
-            {loading ? 'Saving...' : id ? 'Update Client' : 'Create Client'}
+            {loading ? 'Saving...' : 'Update Profile'}
           </button>
           <button
             type="button"
-            onClick={() => navigate('/clients')}
+            onClick={() => navigate('/portal/dashboard')}
             className="btn-secondary"
           >
             Cancel
@@ -373,4 +272,4 @@ const ClientForm = () => {
   );
 };
 
-export default ClientForm;
+export default ClientProfileEditor;

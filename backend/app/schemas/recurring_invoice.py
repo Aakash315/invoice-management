@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import date, datetime
 from typing import Optional, List
 from app.schemas.client import ClientResponse
@@ -16,8 +16,9 @@ class RecurringInvoiceTemplateItemResponse(RecurringInvoiceTemplateItemBase):
     amount: float
     sort_order: int
     
-    class Config:
+    model_config = ConfigDict(
         from_attributes = True
+    )
 
 class RecurringInvoiceBase(BaseModel):
     template_name: str
@@ -66,8 +67,9 @@ class RecurringInvoiceResponse(RecurringInvoiceBase):
     client: Optional[ClientResponse] = None
     template_items: Optional[List[RecurringInvoiceTemplateItemResponse]] = None
     
-    class Config:
+    model_config = ConfigDict(
         from_attributes = True
+    )
 
 class RecurringInvoiceListResponse(BaseModel):
     id: int
@@ -86,8 +88,9 @@ class RecurringInvoiceListResponse(BaseModel):
     created_at: datetime
     client: Optional[ClientResponse] = None
     
-    class Config:
+    model_config = ConfigDict(
         from_attributes = True
+    )
 
 class RecurringInvoiceHistoryItem(BaseModel):
     id: int
@@ -100,8 +103,9 @@ class RecurringInvoiceHistoryItem(BaseModel):
     generated_at: datetime
     client: Optional[ClientResponse] = None
     
-    class Config:
+    model_config = ConfigDict(
         from_attributes = True
+    )
 
 class RecurringInvoicePreview(BaseModel):
     next_due_dates: List[date]

@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Optional, List
 from enum import Enum
@@ -40,15 +40,15 @@ class EmailHistoryResponse(EmailHistoryBase):
     status_display: Optional[str] = None
     status_color: Optional[str] = None
     formatted_sent_time: Optional[str] = None
-    delivery_summary: Optional[str] = None
-    
-    class Config:
+    model_config = ConfigDict(
         from_attributes = True
+    )
 
 class EmailHistoryList(BaseModel):
     total: int
     emails: List[EmailHistoryResponse]
     
-    class Config:
+    model_config = ConfigDict(
         from_attributes = True
+    )
 

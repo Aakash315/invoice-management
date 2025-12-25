@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict # Import ConfigDict
 from datetime import date, datetime
 from typing import Optional, List
 from app.schemas.client import ClientResponse
@@ -17,8 +17,9 @@ class InvoiceItemResponse(InvoiceItemBase):
     id: int
     amount: float
     
-    class Config:
+    model_config = ConfigDict( # Use ConfigDict
         from_attributes = True
+    )
 
 class InvoiceBase(BaseModel):
     client_id: int
@@ -66,6 +67,7 @@ class InvoiceResponse(InvoiceBase):
     created_at: datetime
     updated_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict( # Use ConfigDict
+        from_attributes = True,
         exclude = {'created_by_user', 'payments'}
+    )

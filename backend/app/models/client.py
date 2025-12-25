@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
@@ -16,6 +16,11 @@ class Client(Base):
     state = Column(String(100))
     pincode = Column(String(10))
     gstin = Column(String(15))
+    base_currency = Column(String(10), nullable=False, default='INR')
+    password_hash = Column(String, nullable=True) # Added for client portal authentication
+    is_portal_enabled = Column(Boolean, default=False) # Added to control portal access
+    reset_password_token = Column(String(255), nullable=True)
+    reset_password_expires = Column(DateTime, nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

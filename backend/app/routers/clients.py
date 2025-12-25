@@ -6,6 +6,7 @@ from app.models.client import Client
 from app.models.user import User
 from app.schemas.client import ClientCreate, ClientUpdate, ClientResponse
 from app.utils.dependencies import get_current_user
+from app.utils.auth import get_password_hash
 
 router = APIRouter(prefix="/clients", tags=["Clients"])
 
@@ -37,8 +38,20 @@ async def create_client(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    hashed_password = None
+    if client_data.password:
+        hashed_password = get_password_hash(client_data.password)
+
+    client_dict = client_data.dict(exclude_unset=True)
+    if "password" in client_dict:
+        del client_dict["password"] # Remove plain password before creating client object
+    if "is_portal_enabled" in client_dict: # New: Remove is_portal_enabled from dict
+        del client_dict["is_portal_enabled"]
+
     client = Client(
-        **client_data.dict(),
+        **client_dict,
+        password_hash=hashed_password,
+        is_portal_enabled=client_data.is_portal_enabled if client_data.is_portal_enabled is not None else False,
         created_by=current_user.id
     )
     
@@ -64,7 +77,10 @@ async def update_client(
     
     # Update fields
     for key, value in client_data.dict(exclude_unset=True).items():
-        setattr(client, key, value)
+        if key == "password" and value is not None:
+            setattr(client, "password_hash", get_password_hash(value))
+        elif key != "password": # Exclude the plain password field
+            setattr(client, key, value)
     
     db.commit()
     db.refresh(client)

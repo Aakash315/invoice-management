@@ -12,6 +12,8 @@ class Payment(Base):
     amount = Column(Float, nullable=False)
     payment_method = Column(String(50))
     reference_number = Column(String(100))
+    gateway_payment_id = Column(String(255), nullable=True) # Transaction ID from payment gateway
+    gateway_name = Column(String(50), nullable=True) # e.g., 'razorpay', 'paypal'
     notes = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
     
