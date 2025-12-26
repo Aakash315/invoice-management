@@ -14,7 +14,7 @@ const ClientForgotPassword = () => {
     setMessage('');
 
     try {
-      await api.post('/api/client-auth/request-password-reset', { email });
+      await api.post('/client-auth/request-password-reset', { email });
       setMessage('If an account with that email exists, a password reset email will be sent.');
       toast.success('Password reset email request sent successfully.');
     } catch (error) {

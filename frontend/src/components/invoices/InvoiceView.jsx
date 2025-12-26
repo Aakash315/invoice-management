@@ -149,7 +149,7 @@ const InvoiceView = () => {
             </Link>
           )}
           <button
-            onClick={handleOpenEmailModal}
+            onClick={() => handleOpenEmailModal()}
             className="btn-secondary flex items-center"
           >
             <EnvelopeIcon className="h-5 w-5 mr-2" />

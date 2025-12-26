@@ -38,7 +38,7 @@ const ClientResetPassword = () => {
     }
 
     try {
-      await api.post('/api/client-auth/reset-password', { token, new_password: password });
+      await api.post('/client-auth/reset-password', { token, new_password: password });
       toast.success('Your password has been reset successfully. Please log in.');
       navigate('/portal/login');
     } catch (error) {

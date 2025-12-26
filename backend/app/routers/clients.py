@@ -7,6 +7,8 @@ from app.models.user import User
 from app.schemas.client import ClientCreate, ClientUpdate, ClientResponse
 from app.utils.dependencies import get_current_user
 from app.utils.auth import get_password_hash
+from app.utils.mail import send_generic_email
+from pathlib import Path
 
 router = APIRouter(prefix="/clients", tags=["Clients"])
 
@@ -58,6 +60,30 @@ async def create_client(
     db.add(client)
     db.commit()
     db.refresh(client)
+
+    # Store plain-text password for email before it's gone
+    plain_password = client_data.password if client_data.password else "Not set"
+
+    # Send welcome email
+    try:
+        template_path = Path(__file__).parent.parent / 'templates/client_welcome.html'
+        with open(template_path, 'r', encoding='utf-8') as file:
+            template_body = file.read()
+
+        email_body = template_body.replace('{{client_name}}', client.name)
+        email_body = email_body.replace('{{client_email}}', client.email)
+        email_body = email_body.replace('{{client_password}}', plain_password)
+
+        print("Email body:", email_body)
+
+        await send_generic_email(
+            subject="Welcome to our platform!",
+            recipients=[client.email],
+            body=email_body
+        )
+    except Exception as e:
+        # Log the error, but don't block the response
+        print(f"Failed to send welcome email to {client.email}: {e}")
     
     return client
 

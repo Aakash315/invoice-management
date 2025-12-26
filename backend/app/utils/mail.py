@@ -21,6 +21,26 @@ conf = ConnectionConfig(
 
 fm = FastMail(conf)
 
+async def send_generic_email(subject: str, recipients: list, body: str, attachment: UploadFile = None):
+    print(f"Sending email to: {recipients}")
+    attachments = []
+    if attachment:
+        attachments.append(attachment)
+
+    message = MessageSchema(
+        subject=subject,
+        recipients=recipients,
+        body=body,
+        subtype="html",
+        attachments=attachments
+    )
+    try:
+        await fm.send_message(message)
+        print("Email sent successfully!")
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+
+
 def generate_html_email(invoice_data: dict, tracking_id: str = None) -> str:
     """Generate HTML email content from invoice data with optional tracking."""
     template_path = Path(__file__).parent / '../templates/email_template.html'
@@ -44,7 +64,7 @@ def generate_html_email(invoice_data: dict, tracking_id: str = None) -> str:
     
     return html_content
 
-async def send_email(subject: str, recipients: list, invoice_data: dict = None, attachment: tuple = None, tracking_id: str = None):
+async def send_email(subject: str, recipients: list, invoice_data: dict = None, attachment: UploadFile = None, tracking_id: str = None):
     # Generate HTML content if invoice data is provided
     if invoice_data:
         body = generate_html_email(invoice_data, tracking_id)
@@ -52,15 +72,4 @@ async def send_email(subject: str, recipients: list, invoice_data: dict = None, 
         # Fallback to simple message if no invoice data
         body = "Please find attached the invoice."
     
-    attachments = []
-    if attachment:
-        attachments.append(attachment)
-    
-    message = MessageSchema(
-        subject=subject,
-        recipients=recipients,
-        body=body,
-        subtype="html",
-        attachments=attachments
-    )
-    await fm.send_message(message)
+    await send_generic_email(subject, recipients, body, attachment)

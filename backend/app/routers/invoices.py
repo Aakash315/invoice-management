@@ -364,21 +364,7 @@ async def send_invoice_email(
         recipients.extend(bcc_list)
 
     # Prepare attachment
-    attachment_tuple = None
     attachment_path = None
-    if attachment:
-        try:
-            # Create a temporary file
-            with tempfile.NamedTemporaryFile(delete=False, suffix=attachment.filename) as tmp:
-                tmp.write(await attachment.read())
-                attachment_path = tmp.name
-                attachment_tuple = (attachment.filename, attachment.content_type, await open(attachment_path, 'rb').read())
-        except Exception as e:
-            print(f"Failed to create temporary file: {e}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to handle attachment."
-            )
 
     # Prepare invoice data for email template
     invoice_data = {
@@ -399,7 +385,7 @@ async def send_invoice_email(
             subject=subject,
             recipients=recipients,
             invoice_data=invoice_data,
-            attachment=attachment_tuple,
+            attachment=attachment,
             tracking_id=tracking_id
         )
 
