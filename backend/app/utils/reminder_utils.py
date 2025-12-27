@@ -5,7 +5,7 @@ from typing import List
 from sqlalchemy.orm import Session
 
 from app import models, schemas
-from app.utils.mail import send_email_async # Assuming an existing email sending function
+from app.utils.mail import send_email
 from app.models.invoice import Invoice
 from app.models.reminder import ReminderSetting, ReminderHistory
 
@@ -51,9 +51,9 @@ async def send_reminder_email(db: Session, invoice: Invoice, reminder_type: str,
     """Sends a reminder email and logs it to history."""
     # TODO: Replace with actual client email from invoice
     recipient_email = invoice.client.email 
-    await send_email_async(
-        to=recipient_email,
+    await send_email(
         subject=subject,
+        recipients=[recipient_email],
         body=body
     )
     create_reminder_history_entry(db, invoice, reminder_type, subject, body)

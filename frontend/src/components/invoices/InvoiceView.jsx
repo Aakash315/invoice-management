@@ -35,9 +35,7 @@ const InvoiceView = () => {
   const handleSendManualReminder = async (reminderType) => {
     setIsManualReminderDropdownOpen(false); // Close dropdown
     try {
-      await api.post(`/api/reminders/${id}/send-manual-reminder`, null, {
-        params: { reminder_type: reminderType }
-      });
+      await api.post(`/api/reminders/${id}/send-manual-reminder?reminder_type=${reminderType}`);
       toast.success(`Manual ${reminderType} reminder sent successfully!`);
       fetchReminderHistory(); // Refresh reminder history
     } catch (error) {
@@ -72,8 +70,8 @@ const InvoiceView = () => {
 
   const fetchReminderHistory = useCallback(async () => {
     try {
-      const response = await api.get(`/api/reminders/${id}/history`);
-      setReminderHistory(response.data);
+      const data = await api.get(`/reminders/${id}/history`);
+      setReminderHistory(data);
     } catch (error) {
       toast.error('Failed to fetch reminder history');
       console.error('Error fetching reminder history:', error);

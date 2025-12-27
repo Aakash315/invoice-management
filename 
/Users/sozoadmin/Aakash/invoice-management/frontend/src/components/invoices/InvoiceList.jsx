@@ -27,6 +27,7 @@ const InvoiceList = () => {
     currency: '',
   });
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, invoice: null });
+  const [shouldRefresh, setShouldRefresh] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -42,16 +43,31 @@ const InvoiceList = () => {
     }
   };
 
-  // Check for navigation state from form submissions
-  const shouldRefresh = location.state?.refresh || sessionStorage.getItem('invoiceUpdated') === 'true';
-
+  // Check for navigation state from form submissions on mount
   useEffect(() => {
-    // Clear the session storage flag if it exists
-    if (sessionStorage.getItem('invoiceUpdated') === 'true') {
+    // Check if we need to refresh the list
+    const shouldRefreshFromState = location.state?.refresh;
+    const shouldRefreshFromStorage = sessionStorage.getItem('invoiceUpdated') === 'true';
+    
+    if (shouldRefreshFromState || shouldRefreshFromStorage) {
+      setShouldRefresh(true);
+      // Clear the session storage flag if it exists
       sessionStorage.removeItem('invoiceUpdated');
     }
+  }, [location.state]);
+
+  // Fetch invoices when filters change
+  useEffect(() => {
     fetchInvoices();
-  }, [filters, shouldRefresh]);
+  }, [filters]);
+
+  // Separate effect to handle refresh after the initial fetch
+  useEffect(() => {
+    if (shouldRefresh) {
+      fetchInvoices();
+      setShouldRefresh(false);
+    }
+  }, [shouldRefresh]);
 
   const handleDelete = async () => {
     if (deleteModal.invoice) {

@@ -2,17 +2,19 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
 
-from app import models, schemas
-from app.api import deps
+from app import models
+from app.schemas.reminder import ReminderSetting, ReminderSettingCreate, ReminderSettingUpdate, ReminderHistory
+from app.database import get_db
+from app.utils.dependencies import get_current_user, get_current_active_superuser
 from app.utils import reminder_utils
 import json
 
 router = APIRouter()
 
-@router.get("/settings", response_model=schemas.ReminderSetting)
+@router.get("/settings", response_model=ReminderSetting)
 def get_user_reminder_settings(
-    db: Session = Depends(deps.get_db),
-    current_user: models.User = Depends(deps.get_current_active_user)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
 ):
     """
     Get reminder settings for the current user.
@@ -22,11 +24,11 @@ def get_user_reminder_settings(
         raise HTTPException(status_code=404, detail="Reminder settings not found")
     return settings
 
-@router.post("/settings", response_model=schemas.ReminderSetting)
+@router.post("/settings", response_model=ReminderSetting)
 def create_user_reminder_settings(
-    settings_in: schemas.ReminderSettingCreate,
-    db: Session = Depends(deps.get_db),
-    current_user: models.User = Depends(deps.get_current_active_user)
+    settings_in: ReminderSettingCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
 ):
     """
     Create reminder settings for the current user.
@@ -48,11 +50,11 @@ def create_user_reminder_settings(
     db.refresh(db_obj)
     return db_obj
 
-@router.put("/settings", response_model=schemas.ReminderSetting)
+@router.put("/settings", response_model=ReminderSetting)
 def update_user_reminder_settings(
-    settings_in: schemas.ReminderSettingUpdate,
-    db: Session = Depends(deps.get_db),
-    current_user: models.User = Depends(deps.get_current_active_user)
+    settings_in: ReminderSettingUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
 ):
     """
     Update reminder settings for the current user.
@@ -78,9 +80,9 @@ def update_user_reminder_settings(
 @router.post("/run-scheduled-reminders", status_code=202)
 async def run_scheduled_reminders_endpoint(
     background_tasks: BackgroundTasks,
-    db: Session = Depends(deps.get_db),
+    db: Session = Depends(get_db),
     # Only allow admin or superuser to trigger this endpoint
-    current_user: models.User = Depends(deps.get_current_active_superuser) 
+    current_user: models.User = Depends(get_current_active_superuser) 
 ):
     """
     Endpoint to manually trigger the daily reminder check.
@@ -89,11 +91,11 @@ async def run_scheduled_reminders_endpoint(
     background_tasks.add_task(reminder_utils.check_and_send_reminders, db)
     return {"message": "Reminder check initiated in background."}
 
-@router.get("/{invoice_id}/history", response_model=List[schemas.ReminderHistory])
+@router.get("/{invoice_id}/history", response_model=List[ReminderHistory])
 def get_invoice_reminder_history(
     invoice_id: int,
-    db: Session = Depends(deps.get_db),
-    current_user: models.User = Depends(deps.get_current_active_user)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
 ):
     """
     Get reminder history for a specific invoice.
@@ -116,8 +118,8 @@ async def send_manual_reminder_endpoint(
     invoice_id: int,
     reminder_type: str, # e.g., "friendly", "due", "first_overdue"
     background_tasks: BackgroundTasks,
-    db: Session = Depends(deps.get_db),
-    current_user: models.User = Depends(deps.get_current_active_user)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
 ):
     """
     Send a manual reminder for a specific invoice.

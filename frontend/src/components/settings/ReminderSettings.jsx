@@ -1,16 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../../context/AuthContext';
-import { useApi } from '../../../hooks/useApi';
-import { Input } from '../../common/Input';
-import { Button } from '../../common/Button';
-import { Card } from '../../common/Card';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useApi } from '../../hooks/useApi';
+import { Input } from '../common/Input';
+import { Button } from '../common/Button';
+import { Card } from '../common/Card';
+import { toast } from 'react-hot-toast';
 
 const ReminderSettings = () => {
-    const { user } = useAuth();
     const api = useApi();
-    const navigate = useNavigate();
 
     const [settings, setSettings] = useState({
         remind_before_due: [7, 3, 1],
@@ -26,26 +22,27 @@ const ReminderSettings = () => {
     const [loading, setLoading] = useState(true);
     const [isNew, setIsNew] = useState(true); // To check if settings exist for the user
 
-    useEffect(() => {
-        const fetchSettings = async () => {
-            try {
-                const response = await api.get('/api/reminders/settings');
-                setSettings(response.data);
-                setIsNew(false);
-            } catch (error) {
-                if (error.response && error.response.status === 404) {
-                    // Settings not found, user can create new ones
-                    setIsNew(true);
-                } else {
-                    toast.error('Error fetching reminder settings.');
-                    console.error('Error fetching reminder settings:', error);
-                }
-            } finally {
-                setLoading(false);
+  const fetchSettings = useCallback(async () => {
+        try {
+            const response = await api.get('/api/reminders/settings');
+            setSettings(response);
+            setIsNew(false);
+        } catch (error) {
+            if (error.response && error.response.status === 404) {
+                // Settings not found, user can create new ones
+                setIsNew(true);
+            } else {
+                toast.error('Error fetching reminder settings.');
+                console.error('Error fetching reminder settings:', error);
             }
-        };
-        fetchSettings();
+        } finally {
+            setLoading(false);
+        }
     }, [api]);
+
+    useEffect(() => {
+        fetchSettings();
+    }, [fetchSettings]); // Run only once on mount since fetchSettings is memoized
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -84,10 +81,10 @@ const ReminderSettings = () => {
     }
 
     return (
-        <div className="container mx-auto p-4">
+        <div className="container mx-auto p-4 mt-20">
             <h1 className="text-2xl font-bold mb-4">Reminder Settings</h1>
             <Card>
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4 p-5">
                     <div>
                         <label className="block text-sm font-medium text-gray-700">
                             Enable Reminders:
@@ -140,7 +137,7 @@ const ReminderSettings = () => {
 
                     <h2 className="text-xl font-semibold mt-6 mb-2">Email Templates</h2>
                     <p className="text-sm text-gray-600">
-                        Use variables like `{{invoice_number}}`, `{{due_date}}`, `{{client_name}}`, `{{total_amount}}`, `{{currency}}`, `{{overdue_days}}`.
+                        Use variables like {'{invoice_number}'}, {'{due_date}'}, {'{client_name}'}, {'{total_amount}'}, {'{currency}'}, {'{overdue_days}'}.
                     </p>
 
                     <div>

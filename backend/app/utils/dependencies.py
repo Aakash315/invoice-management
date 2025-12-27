@@ -71,3 +71,20 @@ async def get_current_client(
         )
     
     return client
+
+async def get_current_active_superuser(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
+) -> User:
+    """
+    Get current active superuser. Raises exception if user is not a superuser.
+    """
+    user = await get_current_user(credentials, db)
+    
+    if not user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The user doesn't have enough privileges"
+        )
+    
+    return user
