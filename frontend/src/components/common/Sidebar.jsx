@@ -16,6 +16,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     { name: 'Invoices', href: '/invoices', icon: DocumentTextIcon },
     { name: 'Recurring Invoices', href: '/recurring-invoices', icon: ArrowPathIcon },
     { name: 'Reports', href: '/reports', icon: ChartBarIcon },
+    { name: 'Reminder Settings', href: '/settings/reminders', icon: DocumentTextIcon },
   ];
 
   return (

@@ -48,6 +48,7 @@ class Invoice(Base):
     items = relationship("InvoiceItem", back_populates="invoice", cascade="all, delete-orphan")
     payments = relationship("Payment", back_populates="invoice", cascade="all, delete-orphan")
     email_history = relationship("EmailHistory", back_populates="invoice", cascade="all, delete-orphan")
+    reminder_history = relationship("ReminderHistory", back_populates="invoice", cascade="all, delete-orphan")
     template = relationship("RecurringInvoice", back_populates="generated_invoices", foreign_keys="Invoice.template_id")
 
 class InvoiceItem(Base):

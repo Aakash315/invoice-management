@@ -17,16 +17,34 @@ import PaymentModal from './PaymentModal';
 import { generateInvoicePDF } from '../../utils/pdfGenerator';
 import EmailComposeModal from './EmailComposeModal';
 import RecurringBadge from '../common/RecurringBadge';
+import { useApi } from '../../hooks/useApi'; // Import useApi
 
 const InvoiceView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const api = useApi(); // Initialize useApi
   const [invoice, setInvoice] = useState(null);
   const [emailHistory, setEmailHistory] = useState([]);
+  const [reminderHistory, setReminderHistory] = useState([]); // New state for reminder history
   const [loading, setLoading] = useState(true);
   const [paymentModal, setPaymentModal] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [resendTo, setResendTo] = useState('');
+  const [isManualReminderDropdownOpen, setIsManualReminderDropdownOpen] = useState(false); // New state
+
+  const handleSendManualReminder = async (reminderType) => {
+    setIsManualReminderDropdownOpen(false); // Close dropdown
+    try {
+      await api.post(`/api/reminders/${id}/send-manual-reminder`, null, {
+        params: { reminder_type: reminderType }
+      });
+      toast.success(`Manual ${reminderType} reminder sent successfully!`);
+      fetchReminderHistory(); // Refresh reminder history
+    } catch (error) {
+      toast.error(`Failed to send manual ${reminderType} reminder.`);
+      console.error(`Error sending manual ${reminderType} reminder:`, error);
+    }
+  };
 
 
   const fetchInvoice = useCallback(async () => {
@@ -52,11 +70,21 @@ const InvoiceView = () => {
     }
   }, [id]);
 
+  const fetchReminderHistory = useCallback(async () => {
+    try {
+      const response = await api.get(`/api/reminders/${id}/history`);
+      setReminderHistory(response.data);
+    } catch (error) {
+      toast.error('Failed to fetch reminder history');
+      console.error('Error fetching reminder history:', error);
+    }
+  }, [id, api]);
 
   useEffect(() => {
     fetchInvoice();
     fetchEmailHistory();
-  }, [id, fetchInvoice, fetchEmailHistory]);
+    fetchReminderHistory(); // Fetch reminder history
+  }, [id, fetchInvoice, fetchEmailHistory, fetchReminderHistory]);
 
   const handlePaymentAdded = () => {
     setPaymentModal(false);
@@ -593,6 +621,94 @@ const InvoiceView = () => {
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Reminder History */}
+      {reminderHistory && reminderHistory.length > 0 && (
+        <div className="card">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Reminder History
+          </h3>
+          <div className="space-y-4">
+            {reminderHistory.map((history) => (
+              <div key={history.id} className="border rounded-lg p-4 bg-blue-50">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900">
+                      {history.reminder_type} sent to {history.recipient_email} on {format(new Date(history.sent_at), 'dd MMM yyyy, hh:mm a')}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Subject: {history.email_subject}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Manual Reminder Button */}
+      {invoice.payment_status !== 'paid' && (
+        <div className="card p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Send Manual Reminder
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Trigger a reminder email manually.
+              </p>
+            </div>
+            {/* Dropdown for reminder types */}
+            <div className="relative inline-block text-left">
+              <button
+                type="button"
+                className="btn-primary flex items-center"
+                onClick={() => setIsManualReminderDropdownOpen(!isManualReminderDropdownOpen)}
+              >
+                <EnvelopeIcon className="h-5 w-5 mr-2" />
+                Send Reminder
+              </button>
+              {isManualReminderDropdownOpen && (
+                <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+                  <div className="py-1">
+                    <button
+                      className="text-gray-700 block px-4 py-2 text-sm w-full text-left hover:bg-gray-100"
+                      onClick={() => handleSendManualReminder('friendly')}
+                    >
+                      Friendly Reminder (Due Soon)
+                    </button>
+                    <button
+                      className="text-gray-700 block px-4 py-2 text-sm w-full text-left hover:bg-gray-100"
+                      onClick={() => handleSendManualReminder('due')}
+                    >
+                      Due Date Reminder
+                    </button>
+                    <button
+                      className="text-gray-700 block px-4 py-2 text-sm w-full text-left hover:bg-gray-100"
+                      onClick={() => handleSendManualReminder('first_overdue')}
+                    >
+                      First Overdue Reminder (1-7 days)
+                    </button>
+                    <button
+                      className="text-gray-700 block px-4 py-2 text-sm w-full text-left hover:bg-gray-100"
+                      onClick={() => handleSendManualReminder('second_overdue')}
+                    >
+                      Second Overdue Reminder (7-15 days)
+                    </button>
+                    <button
+                      className="text-gray-700 block px-4 py-2 text-sm w-full text-left hover:bg-gray-100"
+                      onClick={() => handleSendManualReminder('final_notice')}
+                    >
+                      Final Notice (15+ days)
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

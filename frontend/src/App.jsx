@@ -31,6 +31,7 @@ import RecurringInvoiceForm from './components/invoices/RecurringInvoiceForm';
 import RecurringInvoiceView from './components/invoices/RecurringInvoiceView';
 import Reports from './components/reports/Reports';
 import ClientPaymentHistory from './components/payments/ClientPaymentHistory';
+import ReminderSettings from './components/settings/ReminderSettings';
 
 function App() {
   return (
@@ -69,6 +70,7 @@ function App() {
               <Route path="recurring-invoices/view/:id" element={<RecurringInvoiceView />} />
 
               <Route path="reports" element={<Reports />} />
+              <Route path="settings/reminders" element={<ReminderSettings />} />
             </Route>
 
             {/* Client Portal Public Routes */}

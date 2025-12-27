@@ -194,6 +194,11 @@ async def create_cashfree_order(
             detail="Invoice is already fully paid."
         )
     
+    balance_due = invoice.total_amount - invoice.paid_amount
+    
+    order_amount = min(order_data.amount, balance_due)
+    order_amount = round(order_amount, 2)
+    
     order_id = f"inv_{invoice.id}_{uuid.uuid4()}"
     return_url = f"http://localhost:3000/portal/invoices/{invoice.id}?cashfree_order_id={order_id}"
 
@@ -206,7 +211,7 @@ async def create_cashfree_order(
     
     payload = {
         "order_id": order_id,
-        "order_amount": order_data.amount,
+        "order_amount": order_amount,
         "order_currency": invoice.currency,
         "customer_details": {
             "customer_id": str(current_client.id),
@@ -220,12 +225,21 @@ async def create_cashfree_order(
         "order_note": f"Payment for Invoice #{invoice.invoice_number}"
     }
 
+    
+
+    print(f"Creating Cashfree order with amount: {order_amount} {invoice.currency}")
+
+
+
     try:
+
         async with httpx.AsyncClient() as client:
+
             response = await client.post(f"{settings.CASHFREE_BASE_URL}/pg/orders", headers=headers, json=payload)
+
             response.raise_for_status()
-            cashfree_order = response.json()
-            
+
+            cashfree_order = response.json()            
             payment_session_id = cashfree_order.get("payment_session_id")
             # print(payment_session_id)
             if not payment_session_id:
@@ -454,7 +468,7 @@ async def verify_cashfree_order(
 
     headers = {
         "Content-Type": "application/json",
-        "x-api-version": "2025-01-01",
+        "x-api-version": "2022-09-01",
         "x-client-id": settings.CASHFREE_APP_ID,
         "x-client-secret": settings.CASHFREE_SECRET_KEY,
     }

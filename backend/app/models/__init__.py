@@ -5,3 +5,4 @@ from app.models.payment import Payment
 from app.models.email_history import EmailHistory
 from app.models.recurring_invoice import RecurringInvoice, RecurringInvoiceTemplateItem
 from app.models.exchange_rate import ExchangeRate
+from app.models.reminder import ReminderSetting, ReminderHistory
