@@ -651,7 +651,7 @@ const InvoiceView = () => {
 
       {/* Manual Reminder Button */}
       {invoice.payment_status !== 'paid' && (
-        <div className="card p-5">
+        <div className="card p-5 overflow-visible">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold text-gray-900">
@@ -672,7 +672,7 @@ const InvoiceView = () => {
                 Send Reminder
               </button>
               {isManualReminderDropdownOpen && (
-                <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+                <div className="origin-bottom-right absolute right-0 bottom-full mb-2 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
                   <div className="py-1">
                     <button
                       className="text-gray-700 block px-4 py-2 text-sm w-full text-left hover:bg-gray-100"
