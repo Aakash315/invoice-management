@@ -35,11 +35,12 @@ const InvoiceView = () => {
   const handleSendManualReminder = async (reminderType) => {
     setIsManualReminderDropdownOpen(false); // Close dropdown
     try {
-      await api.post(`/api/reminders/${id}/send-manual-reminder?reminder_type=${reminderType}`);
+      await api.post(`/reminders/${id}/send-manual-reminder?reminder_type=${reminderType}`);
       toast.success(`Manual ${reminderType} reminder sent successfully!`);
       fetchReminderHistory(); // Refresh reminder history
     } catch (error) {
-      toast.error(`Failed to send manual ${reminderType} reminder.`);
+      const errorMessage = error.response?.data?.detail || `Failed to send manual ${reminderType} reminder.`;
+      toast.error(errorMessage);
       console.error(`Error sending manual ${reminderType} reminder:`, error);
     }
   };

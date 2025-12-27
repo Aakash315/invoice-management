@@ -22,6 +22,11 @@ def get_user_reminder_settings(
     settings = reminder_utils.get_reminder_settings(db, current_user.id)
     if not settings:
         raise HTTPException(status_code=404, detail="Reminder settings not found")
+    # Convert JSON strings back to lists before returning
+    if isinstance(settings.remind_before_due, str):
+        settings.remind_before_due = json.loads(settings.remind_before_due)
+    if isinstance(settings.remind_after_due, str):
+        settings.remind_after_due = json.loads(settings.remind_after_due)
     return settings
 
 @router.post("/settings", response_model=ReminderSetting)
@@ -48,6 +53,9 @@ def create_user_reminder_settings(
     db.add(db_obj)
     db.commit()
     db.refresh(db_obj)
+    # Convert JSON strings back to lists before returning
+    db_obj.remind_before_due = json.loads(db_obj.remind_before_due)
+    db_obj.remind_after_due = json.loads(db_obj.remind_after_due)
     return db_obj
 
 @router.put("/settings", response_model=ReminderSetting)
@@ -75,6 +83,11 @@ def update_user_reminder_settings(
     db.add(settings)
     db.commit()
     db.refresh(settings)
+    # Convert JSON strings back to lists before returning
+    if isinstance(settings.remind_before_due, str):
+        settings.remind_before_due = json.loads(settings.remind_before_due)
+    if isinstance(settings.remind_after_due, str):
+        settings.remind_after_due = json.loads(settings.remind_after_due)
     return settings
 
 @router.post("/run-scheduled-reminders", status_code=202)
@@ -132,8 +145,8 @@ async def send_manual_reminder_endpoint(
         raise HTTPException(status_code=404, detail="Invoice not found")
 
     settings = reminder_utils.get_reminder_settings(db, current_user.id)
-    if not settings or not settings.enabled:
-        raise HTTPException(status_code=400, detail="Reminders are not enabled for this user.")
+    if not settings:
+        raise HTTPException(status_code=400, detail="Reminder settings not found for this user.")
 
     # Determine subject and body based on reminder_type
     subject = ""
@@ -158,7 +171,7 @@ async def send_manual_reminder_endpoint(
     
     # Check if client has an email
     if not invoice.client.email:
-        raise HTTPException(status_code=400, detail="Client does not have an email address.")
+        raise HTTPException(status_code=400, detail="Client does not have an email address. Please add an email address to the client.")
 
     background_tasks.add_task(
         reminder_utils.send_reminder_email, db, invoice, reminder_type, subject, body

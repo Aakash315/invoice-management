@@ -24,7 +24,7 @@ const ReminderSettings = () => {
 
   const fetchSettings = useCallback(async () => {
         try {
-            const response = await api.get('/api/reminders/settings');
+            const response = await api.get('/reminders/settings');
             setSettings(response);
             setIsNew(false);
         } catch (error) {
@@ -61,11 +61,11 @@ const ReminderSettings = () => {
         setLoading(true);
         try {
             if (isNew) {
-                await api.post('/api/reminders/settings', settings);
+                await api.post('/reminders/settings', settings);
                 toast.success('Reminder settings created successfully!');
                 setIsNew(false);
             } else {
-                await api.put('/api/reminders/settings', settings);
+                await api.put('/reminders/settings', settings);
                 toast.success('Reminder settings updated successfully!');
             }
         } catch (error) {

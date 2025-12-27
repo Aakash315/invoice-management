@@ -34,6 +34,13 @@ async def send_generic_email(subject: str, recipients: list, body: str, attachme
         subtype="html",
         attachments=attachments
     )
+    if settings.ENVIRONMENT == "test":
+        print("--- MOCK EMAIL ---")
+        print(f"To: {recipients}")
+        print(f"Subject: {subject}")
+        print("--- END MOCK EMAIL ---")
+        return
+
     try:
         await fm.send_message(message)
         print("Email sent successfully!")

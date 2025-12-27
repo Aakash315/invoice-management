@@ -47,16 +47,26 @@ def create_reminder_history_entry(db: Session, invoice: Invoice, reminder_type: 
     db.refresh(reminder_history)
     return reminder_history
 
-async def send_reminder_email(db: Session, invoice: Invoice, reminder_type: str, subject: str, body: str):
+async def send_reminder_email(db: Session, invoice: Invoice, reminder_type: str, subject: str, template_body: str):
     """Sends a reminder email and logs it to history."""
-    # TODO: Replace with actual client email from invoice
     recipient_email = invoice.client.email 
+
+    # Construct invoice_data for email template
+    invoice_data = {
+        "company_name": "Webby Wonder", # Placeholder, ideally from user settings
+        "company_location": "Mumbai, India", # Placeholder
+        "client_name": invoice.client.name,
+        "invoice_number": invoice.invoice_number,
+        "total_amount": str(invoice.total_amount),
+        "due_date": invoice.due_date.strftime("%B %d, %Y")
+    }
+
     await send_email(
         subject=subject,
         recipients=[recipient_email],
-        body=body
+        invoice_data=invoice_data
     )
-    create_reminder_history_entry(db, invoice, reminder_type, subject, body)
+    create_reminder_history_entry(db, invoice, reminder_type, subject, template_body)
 
 async def check_and_send_reminders(db: Session):
     """
@@ -92,7 +102,7 @@ async def check_and_send_reminders(db: Session):
                 if not already_reminded:
                     subject = f"Friendly Reminder: Invoice {invoice.invoice_number} is due in {days_before} days"
                     body = settings.template_friendly or "Your invoice is due soon."
-                    await send_reminder_email(db, invoice, f"friendly_{days_before}_days_before", subject, body)
+                    await send_reminder_email(db, invoice, f"friendly_{days_before}_days_before", subject, settings.template_friendly)
 
         # Reminder on due date
         if settings.remind_on_due:
@@ -108,7 +118,7 @@ async def check_and_send_reminders(db: Session):
                     if not already_reminded:
                         subject = f"Invoice {invoice.invoice_number} is due today"
                         body = settings.template_due or "Your invoice is due today."
-                        await send_reminder_email(db, invoice, "due_date", subject, body)
+                        await send_reminder_email(db, invoice, "due_date", subject, settings.template_due)
 
         # Reminders after due date (overdue)
         for days_overdue in remind_after_due_days:
@@ -141,5 +151,5 @@ async def check_and_send_reminders(db: Session):
                     if not already_reminded:
                         subject = f"Reminder: Invoice {invoice.invoice_number} is {days_overdue} days overdue"
                         body = template_body or f"Your invoice is {days_overdue} days overdue."
-                        await send_reminder_email(db, invoice, reminder_type, subject, body)
+                        await send_reminder_email(db, invoice, reminder_type, subject, template_body)
 
