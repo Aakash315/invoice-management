@@ -21,6 +21,7 @@ const Dashboard = () => {
   const [profitStats, setProfitStats] = useState(null);
   const [expenseData, setExpenseData] = useState(null);
   const [expenseLoading, setExpenseLoading] = useState(true);
+  const [baseCurrency, setBaseCurrency] = useState('INR');
 
   // Fetch expense and profit data
   useEffect(() => {
@@ -30,7 +31,36 @@ const Dashboard = () => {
         
         // Get profit dashboard data
         const profitData = await expenseService.getProfitDashboard();
-        setProfitStats(profitData);
+        console.log('Profit data received:', profitData);
+        
+        // Extract currency from backend response
+        const currency = profitData?.currency || stats?.total_revenue_base_currency || 'INR';
+        setBaseCurrency(currency);
+        
+        // Ensure profit data has the correct structure
+        if (profitData && profitData.summary) {
+          const enrichedProfitData = {
+            ...profitData.summary,
+            currency: currency
+          };
+          setProfitStats(enrichedProfitData);
+        } else if (profitData) {
+          // Handle direct profit data format
+          const enrichedProfitData = {
+            ...profitData,
+            currency: currency
+          };
+          setProfitStats(enrichedProfitData);
+        } else {
+          // Set default empty data
+          setProfitStats({
+            total_revenue: 0,
+            total_expenses: 0,
+            total_profit: 0,
+            profit_margin: 0,
+            currency: currency
+          });
+        }
 
         // Get expense summary for current month
         const currentMonth = new Date();
@@ -42,7 +72,7 @@ const Dashboard = () => {
         const expenseSummary = await expenseService.getExpenseSummary(startDate, endDate);
         setExpenseData(expenseSummary);
       } catch (error) {
-        console.warn('Failed to fetch expense data:', error);
+        console.error('Failed to fetch expense data:', error);
         // Set default empty data to prevent crashes
         setProfitStats({
           total_revenue: 0,
@@ -98,14 +128,14 @@ const Dashboard = () => {
         <StatsCard
           title="Total Expenses"
           value={`${(expenseData?.total_expenses || 0).toLocaleString()}`}
-          currency={stats?.total_revenue_base_currency}
+          currency={profitStats?.currency || baseCurrency}
           icon="expenses"
           color="orange"
         />
         <StatsCard
           title="Net Profit"
           value={`${(profitStats?.total_profit || 0).toLocaleString()}`}
-          currency={stats?.total_revenue_base_currency}
+          currency={profitStats?.currency || baseCurrency}
           icon="profit"
           color={profitStats?.total_profit >= 0 ? "green" : "red"}
           subtitle={`${(profitStats?.profit_margin || 0).toFixed(1)}% margin`}
@@ -136,7 +166,7 @@ const Dashboard = () => {
         <StatsCard
           title="This Month Expenses"
           value={`${(expenseData?.total_expenses || 0).toLocaleString()}`}
-          currency={stats?.total_revenue_base_currency}
+          currency={profitStats?.currency || baseCurrency}
           icon="expenses"
           color="orange"
           subtitle={`${expenseData?.expense_count || 0} transactions`}

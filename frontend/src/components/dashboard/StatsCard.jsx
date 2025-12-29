@@ -4,6 +4,8 @@ import {
   DocumentTextIcon,
   UsersIcon,
   ClockIcon,
+  ArrowTrendingUpIcon,
+  BanknotesIcon,
 } from '@heroicons/react/24/outline';
 
 const iconMap = {
@@ -11,6 +13,8 @@ const iconMap = {
   invoices: DocumentTextIcon,
   clients: UsersIcon,
   pending: ClockIcon,
+  profit: ArrowTrendingUpIcon,
+  expenses: BanknotesIcon,
 };
 
 const getCurrencySymbol = (currency) => {
