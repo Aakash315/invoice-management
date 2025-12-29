@@ -54,6 +54,7 @@ class Invoice(Base):
     reminder_history = relationship("ReminderHistory", back_populates="invoice", cascade="all, delete-orphan")
     recurring_template = relationship("RecurringInvoice", back_populates="generated_invoices", foreign_keys="Invoice.recurring_template_id")
     design_template = relationship("InvoiceTemplate", back_populates="invoices")
+    expenses = relationship("Expense", back_populates="invoice", cascade="all, delete-orphan")
 
 class InvoiceItem(Base):
     __tablename__ = "invoice_items"

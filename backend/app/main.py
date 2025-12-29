@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
-from app.routers import auth, clients, invoices, payments, dashboard, recurring_invoices, reports, client_auth, client_invoices, webhooks, reminders, templates
+from app.routers import auth, clients, invoices, payments, dashboard, recurring_invoices, reports, client_auth, client_invoices, webhooks, reminders, templates, expenses, expense_categories
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -20,6 +20,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition"],
 )
 
 # Include routers
@@ -35,6 +36,8 @@ app.include_router(client_invoices.router, prefix="/api")
 app.include_router(webhooks.router) # Added webhooks router without prefix
 app.include_router(reminders.router, prefix="/api/reminders")
 app.include_router(templates.router, prefix="/api")
+app.include_router(expenses.router, prefix="/api")
+app.include_router(expense_categories.router, prefix="/api")
 
 # Health check endpoint
 @app.get("/api/health")

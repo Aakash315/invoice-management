@@ -5,9 +5,11 @@ from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import func, extract
 from app.database import get_db
 from app.models.invoice import Invoice
+from app.models.expense import Expense
 from app.models.client import Client
 from app.models.user import User
 from app.utils.dependencies import get_current_user
+from app.utils.profit_calculator import calculate_profit_summary, calculate_monthly_profit
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
@@ -54,8 +56,16 @@ async def get_statistics(
     # Total clients
     total_clients = db.query(Client).count()
     
-
-
+    # Calculate profit metrics
+    profit_data = calculate_profit_summary(db, current_user.id, base_currency=base_currency)
+    
+    # Total expenses
+    total_expenses = db.query(func.sum(Expense.base_currency_amount)).filter(
+        Expense.created_by == current_user.id
+    ).scalar() or 0
+    
+    total_profit = profit_data["summary"]["total_profit"]
+    profit_margin = profit_data["summary"]["profit_margin"]
 
     # Recent invoices with client data
     recent_invoices = db.query(Invoice).options(
@@ -68,6 +78,8 @@ async def get_statistics(
     for invoice in recent_invoices:
         invoice.balance = invoice.total_amount - invoice.paid_amount
     
+    # Monthly profit data (last 6 months)
+    monthly_profit = calculate_monthly_profit(db, current_user.id, 6, base_currency)
 
     # Monthly revenue (last 6 months for sent, paid, and overdue invoices)
     monthly_revenue = db.query(
@@ -88,6 +100,9 @@ async def get_statistics(
         "stats": {
             "total_invoices": total_invoices,
             "total_revenue": float(total_revenue),
+            "total_expenses": float(total_expenses),
+            "total_profit": float(total_profit),
+            "profit_margin": float(profit_margin),
             "pending_amount": float(pending_amount),
             "total_clients": total_clients,
             "total_revenue_base_currency": base_currency,
@@ -98,8 +113,41 @@ async def get_statistics(
             {"month": int(r.month), "year": int(r.year), "revenue": float(r.revenue or 0.0)}
             for r in monthly_revenue
         ],
+        "monthly_profit": monthly_profit,
         "status_breakdown": [
             {"status": r.status, "count": r.count}
             for r in status_breakdown
         ]
+    }
+
+@router.get("/profit")
+async def get_profit_dashboard(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get detailed profit dashboard data"""
+    base_currency = current_user.base_currency or "INR"
+    
+    # Current year profit summary
+    from datetime import date
+    current_year = date.today().year
+    current_year_summary = calculate_profit_summary(
+        db, current_user.id,
+        date(current_year, 1, 1),
+        date(current_year, 12, 31),
+        base_currency
+    )
+    
+    # Monthly profit for current year
+    monthly_profit = calculate_monthly_profit(db, current_user.id, 12, base_currency)
+    
+    # Top profit-making clients
+    from app.utils.profit_calculator import calculate_profit_by_client
+    top_profit_clients = calculate_profit_by_client(db, current_user.id, limit=5)
+    
+    return {
+        "summary": current_year_summary["summary"],
+        "monthly_profit": monthly_profit,
+        "top_profit_clients": top_profit_clients,
+        "currency": base_currency
     }

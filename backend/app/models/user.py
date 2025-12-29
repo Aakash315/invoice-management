@@ -21,3 +21,5 @@ class User(Base):
     reminder_setting = relationship("ReminderSetting", back_populates="user", uselist=False)
     invoice_templates = relationship("InvoiceTemplate", back_populates="user")
     template_defaults = relationship("UserTemplateDefault", back_populates="user")
+    expenses = relationship("Expense", back_populates="created_by_user")
+    expense_categories = relationship("ExpenseCategory", back_populates="created_by_user")

@@ -7,6 +7,8 @@ import {
   ArrowPathIcon,
   ChartBarIcon,
   PaintBrushIcon,
+  CurrencyDollarIcon,
+  TagIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 
@@ -17,6 +19,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     { name: 'Invoices', href: '/invoices', icon: DocumentTextIcon },
     { name: 'Invoice Templates', href: '/templates', icon: PaintBrushIcon },
     { name: 'Recurring Invoices', href: '/recurring-invoices', icon: ArrowPathIcon },
+    { name: 'Expenses', href: '/expenses', icon: CurrencyDollarIcon },
+    { name: 'Expense Categories', href: '/expense-categories', icon: TagIcon },
     { name: 'Reports', href: '/reports', icon: ChartBarIcon },
     { name: 'Reminder Settings', href: '/settings/reminders', icon: DocumentTextIcon },
   ];

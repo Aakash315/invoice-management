@@ -31,6 +31,10 @@ import RecurringInvoiceForm from './components/invoices/RecurringInvoiceForm';
 import RecurringInvoiceView from './components/invoices/RecurringInvoiceView';
 import TemplateGallery from './components/templates/TemplateGallery';
 import TemplateForm from './components/templates/TemplateForm';
+import ExpenseList from './components/expenses/ExpenseList';
+import ExpenseForm from './components/expenses/ExpenseForm';
+import ExpenseCategoryList from './components/expenses/ExpenseCategoryList';
+import ExpenseCategoryForm from './components/expenses/ExpenseCategoryForm';
 import Reports from './components/reports/Reports';
 import ClientPaymentHistory from './components/payments/ClientPaymentHistory';
 import ReminderSettings from './components/settings/ReminderSettings';
@@ -74,6 +78,13 @@ function App() {
               <Route path="templates" element={<TemplateGallery />} />
               <Route path="templates/new" element={<TemplateForm />} />
               <Route path="templates/edit/:id" element={<TemplateForm />} />
+
+              <Route path="expenses" element={<ExpenseList />} />
+              <Route path="expenses/new" element={<ExpenseForm />} />
+              <Route path="expenses/:id/edit" element={<ExpenseForm />} />
+              <Route path="expense-categories" element={<ExpenseCategoryList />} />
+              <Route path="expense-categories/new" element={<ExpenseCategoryForm />} />
+              <Route path="expense-categories/:id/edit" element={<ExpenseCategoryForm />} />
 
               <Route path="reports" element={<Reports />} />
               <Route path="settings/reminders" element={<ReminderSettings />} />
