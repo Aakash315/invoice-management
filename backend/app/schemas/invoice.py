@@ -66,6 +66,7 @@ class InvoiceResponse(InvoiceBase):
     design_template_id: Optional[int] = None
     client: Optional[ClientResponse] = None
     items: Optional[List[InvoiceItemResponse]] = None
+    template_config: Optional[dict] = None
 
     created_at: datetime
     updated_at: datetime

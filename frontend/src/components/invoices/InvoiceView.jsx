@@ -144,6 +144,42 @@ const InvoiceView = () => {
 
   const currencySymbol = getCurrencySymbol(invoice.currency);
 
+  const getTemplateStyles = () => {
+    if (!invoice?.template_config) return {};
+    const config = invoice.template_config;
+    
+    return {
+      container: {
+        fontFamily: config.font_family || 'sans-serif',
+        fontSize: `${config.font_size_base || 14}px`,
+        color: config.text_color || '#000',
+        backgroundColor: config.background_color || '#fff',
+      },
+      header: {
+        color: config.primary_color || '#000',
+        fontSize: `${config.font_size_header || 24}px`,
+      },
+      invoiceTitle: {
+        fontSize: `${config.font_size_title || 36}px`,
+        color: config.primary_color || '#000',
+      },
+      tableHeader: {
+        backgroundColor: config.accent_color || '#f0f0f0',
+        color: config.secondary_color || '#000',
+      },
+      totalAmount: {
+        color: config.primary_color || '#000',
+      },
+      companyName: {
+        color: config.primary_color || '#000',
+        fontSize: '1.25rem', // text-xl
+        fontWeight: 'bold',
+      },
+    };
+  };
+
+  const templateStyles = getTemplateStyles();
+
   return (
     <div className="max-w-5xl mx-auto space-y-6 mt-20">
       {/* Header */}
@@ -200,47 +236,62 @@ const InvoiceView = () => {
       </div>
 
       {/* Invoice Content */}
-      <div className="card p-8">
+      <div className="card p-8" style={templateStyles.container}>
         {/* Header Section */}
         <div className="flex justify-between items-start mb-8">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">INVOICE</h2>
-            <p className="text-gray-600">{invoice.invoice_number}</p>
+            {invoice.template_config.show_invoice_number && (
+              <>
+                <h2 className="text-3xl font-bold mb-2" style={templateStyles.invoiceTitle}>INVOICE</h2>
+                <p className="text-gray-600">{invoice.invoice_number}</p>
+              </>
+            )}
           </div>
           <div className="text-right">
-            <h3 className="text-xl font-bold text-gray-900">Webby Wonder</h3>
-            <p className="text-gray-600 text-sm">Mumbai, India</p>
+            {invoice.template_config.show_company_logo && invoice.template_config.company_logo_url && (
+                <img src={invoice.template_config.company_logo_url} alt="Company Logo" className="h-16 w-auto object-contain mb-2" />
+            )}
+            {invoice.template_config.show_company_details && (
+              <>
+                <h3 style={templateStyles.companyName}>{invoice.template_config.company_name}</h3>
+                <p className="text-gray-600 text-sm">{invoice.template_config.company_address}</p>
+              </>
+            )}
           </div>
         </div>
 
         {/* Client and Date Info */}
         <div className="grid grid-cols-2 gap-8 mb-8">
           <div>
-            <h4 className="text-sm font-semibold text-gray-500 uppercase mb-2">
-              Bill To
-            </h4>
-            <div className="text-gray-900">
-              <p className="font-semibold">{invoice.client?.name}</p>
-              {invoice.client?.company && (
-                <p className="text-sm">{invoice.client.company}</p>
-              )}
-              <p className="text-sm">{invoice.client?.email}</p>
-              {invoice.client?.phone && (
-                <p className="text-sm">{invoice.client.phone}</p>
-              )}
-              {invoice.client?.address && (
-                <div className="text-sm mt-2">
-                  <p>{invoice.client.address}</p>
-                  <p>
-                    {invoice.client.city}, {invoice.client.state}{' '}
-                    {invoice.client.pincode}
-                  </p>
+            {invoice.template_config.show_client_details && (
+              <>
+                <h4 className="text-sm font-semibold text-gray-500 uppercase mb-2">
+                  Bill To
+                </h4>
+                <div className="text-gray-900">
+                  <p className="font-semibold">{invoice.client?.name}</p>
+                  {invoice.client?.company && (
+                    <p className="text-sm">{invoice.client.company}</p>
+                  )}
+                  <p className="text-sm">{invoice.client?.email}</p>
+                  {invoice.client?.phone && (
+                    <p className="text-sm">{invoice.client.phone}</p>
+                  )}
+                  {invoice.client?.address && (
+                    <div className="text-sm mt-2">
+                      <p>{invoice.client.address}</p>
+                      <p>
+                        {invoice.client.city}, {invoice.client.state}{' '}
+                        {invoice.client.pincode}
+                      </p>
+                    </div>
+                  )}
+                  {invoice.client?.gstin && (
+                    <p className="text-sm mt-2">GSTIN: {invoice.client.gstin}</p>
+                  )}
                 </div>
-              )}
-              {invoice.client?.gstin && (
-                <p className="text-sm mt-2">GSTIN: {invoice.client.gstin}</p>
-              )}
-            </div>
+              </>
+            )}
           </div>
 
           <div className="text-right">
@@ -254,78 +305,88 @@ const InvoiceView = () => {
               </span>
             </div>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Issue Date:</span>
-                <span className="font-medium">
-                  {format(new Date(invoice.issue_date), 'dd MMM yyyy')}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Due Date:</span>
-                <span className="font-medium">
-                  {format(new Date(invoice.due_date), 'dd MMM yyyy')}
-                </span>
-              </div>
+              {invoice.template_config.show_issue_date && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Issue Date:</span>
+                  <span className="font-medium">
+                    {format(new Date(invoice.issue_date), 'dd MMM yyyy')}
+                  </span>
+                </div>
+              )}
+              {invoice.template_config.show_due_date && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Due Date:</span>
+                  <span className="font-medium">
+                    {format(new Date(invoice.due_date), 'dd MMM yyyy')}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         {/* Items Table */}
-        <div className="mb-8 overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Description
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                  Quantity
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                  Rate
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                  Amount
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {invoice.items?.map((item, index) => (
-                <tr key={index}>
-                  <td className="px-4 py-4 text-sm text-gray-900">
-                    {item.description}
-                  </td>
-                  <td className="px-4 py-4 text-sm text-gray-900 text-right">
-                    {item.quantity}
-                  </td>
-                  <td className="px-4 py-4 text-sm text-gray-900 text-right">
-                    {currencySymbol}{item.rate.toLocaleString()}
-                  </td>
-                  <td className="px-4 py-4 text-sm text-gray-900 text-right font-medium">
-                    {currencySymbol}{item.amount.toLocaleString()}
-                  </td>
+        {invoice.template_config.show_line_items && (
+          <div className="mb-8 overflow-x-auto">
+            <table className="w-full">
+              <thead style={templateStyles.tableHeader}>
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase">
+                    Description
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase">
+                    Quantity
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase">
+                    Rate
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase">
+                    Amount
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {invoice.items?.map((item, index) => (
+                  <tr key={index}>
+                    <td className="px-4 py-4 text-sm text-gray-900">
+                      {item.description}
+                    </td>
+                    <td className="px-4 py-4 text-sm text-gray-900 text-right">
+                      {item.quantity}
+                    </td>
+                    <td className="px-4 py-4 text-sm text-gray-900 text-right">
+                      {currencySymbol}{item.rate.toLocaleString()}
+                    </td>
+                    <td className="px-4 py-4 text-sm text-gray-900 text-right font-medium">
+                      {currencySymbol}{item.amount.toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* Totals */}
         <div className="flex justify-end mb-8">
           <div className="w-full max-w-xs space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Subtotal:</span>
-              <span className="font-medium">
-                {currencySymbol}{invoice.subtotal.toLocaleString()}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Tax ({invoice.tax_rate}%):</span>
-              <span className="font-medium">
-                {currencySymbol}{invoice.tax_amount.toLocaleString()}
-              </span>
-            </div>
-            {invoice.discount > 0 && (
+            {invoice.template_config.show_subtotal && (
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Subtotal:</span>
+                <span className="font-medium">
+                  {currencySymbol}{invoice.subtotal.toLocaleString()}
+                </span>
+              </div>
+            )}
+            {invoice.template_config.show_tax && (
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Tax ({invoice.tax_rate}%):</span>
+                <span className="font-medium">
+                  {currencySymbol}{invoice.tax_amount.toLocaleString()}
+                </span>
+              </div>
+            )}
+            {invoice.template_config.show_discount && invoice.discount > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Discount:</span>
                 <span className="font-medium text-red-600">
@@ -333,13 +394,15 @@ const InvoiceView = () => {
                 </span>
               </div>
             )}
-            <div className="border-t pt-2 flex justify-between">
-              <span className="font-semibold">Total:</span>
-              <span className="font-bold text-xl text-primary-600">
-                {currencySymbol}{invoice.total_amount.toLocaleString()}
-              </span>
-            </div>
-            {invoice.paid_amount > 0 && (
+            {invoice.template_config.show_total && (
+              <div className="border-t pt-2 flex justify-between">
+                <span className="font-semibold">Total:</span>
+                <span className="font-bold text-xl" style={templateStyles.totalAmount}>
+                  {currencySymbol}{invoice.total_amount.toLocaleString()}
+                </span>
+              </div>
+            )}
+            {invoice.template_config.show_paid_amount && invoice.paid_amount > 0 && (
               <>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Paid:</span>
@@ -347,38 +410,38 @@ const InvoiceView = () => {
                     {currencySymbol}{invoice.paid_amount.toLocaleString()}
                   </span>
                 </div>
-                <div className="flex justify-between font-semibold">
-                  <span className="text-gray-900">Balance Due:</span>
-                  <span className="text-red-600">
-                    {currencySymbol}{invoice.balance.toLocaleString()}
-                  </span>
-                </div>
+                {invoice.template_config.show_balance_due && (
+                  <div className="flex justify-between font-semibold">
+                    <span className="text-gray-900">Balance Due:</span>
+                    <span className="text-red-600">
+                      {currencySymbol}{invoice.balance.toLocaleString()}
+                    </span>
+                  </div>
+                )}
               </>
             )}
           </div>
         </div>
 
         {/* Notes and Terms */}
-        {(invoice.notes || invoice.terms) && (
-          <div className="border-t pt-6 space-y-4">
-            {invoice.notes && (
-              <div>
-                <h4 className="text-sm font-semibold text-gray-900 mb-2">
-                  Notes
-                </h4>
-                <p className="text-sm text-gray-600">{invoice.notes}</p>
-              </div>
-            )}
-            {invoice.terms && (
-              <div>
-                <h4 className="text-sm font-semibold text-gray-900 mb-2">
-                  Terms & Conditions
-                </h4>
-                <p className="text-sm text-gray-600">{invoice.terms}</p>
-              </div>
-            )}
-          </div>
-        )}
+        <div className="border-t pt-6 space-y-4">
+          {invoice.template_config.show_notes && invoice.notes && (
+            <div>
+              <h4 className="text-sm font-semibold text-gray-900 mb-2">
+                Notes
+              </h4>
+              <p className="text-sm text-gray-600">{invoice.notes}</p>
+            </div>
+          )}
+          {invoice.template_config.show_terms && invoice.terms && (
+            <div>
+              <h4 className="text-sm font-semibold text-gray-900 mb-2">
+                Terms & Conditions
+              </h4>
+              <p className="text-sm text-gray-600">{invoice.terms}</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Template Information - Only show for recurring invoices */}

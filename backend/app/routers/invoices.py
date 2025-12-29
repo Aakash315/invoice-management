@@ -1,3 +1,4 @@
+from app.utils.template_renderer import get_template_renderer
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Form, File, UploadFile
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -148,6 +149,11 @@ async def get_invoice(
         )
     
     invoice.balance = invoice.total_amount - invoice.paid_amount
+
+    # Get template configuration
+    template_renderer = get_template_renderer(db, invoice.id)
+    invoice.template_config = template_renderer.get_template_config()
+
     return invoice
 
 @router.post("", response_model=InvoiceResponse, status_code=status.HTTP_201_CREATED)
