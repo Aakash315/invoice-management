@@ -63,7 +63,7 @@ def create_invoice_from_template(template: RecurringInvoice, generation_date: da
         notes=f"Generated from recurring template: {template.template_name}",
         terms="Payment due within 30 days.",
         created_by=template.created_by,
-        template_id=template.id,
+        recurring_template_id=template.id,
         generated_by_template=True
     )
     
@@ -822,7 +822,7 @@ async def get_generated_invoices_history(
     
     # Get generated invoices
     invoices = db.query(Invoice).filter(
-        Invoice.template_id == template_id
+        Invoice.recurring_template_id == template_id
     ).order_by(Invoice.created_at.desc()).offset(offset).limit(limit).all()
     
     result = []

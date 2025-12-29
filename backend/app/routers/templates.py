@@ -163,7 +163,7 @@ async def delete_template(
         )
     
     # Check if template is being used by any invoices
-    invoices_count = db.query(Invoice).filter(Invoice.template_id == template_id).count()
+    invoices_count = db.query(Invoice).filter(Invoice.design_template_id == template_id).count()
     if invoices_count > 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
