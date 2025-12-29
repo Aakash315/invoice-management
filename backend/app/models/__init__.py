@@ -6,3 +6,4 @@ from app.models.email_history import EmailHistory
 from app.models.recurring_invoice import RecurringInvoice, RecurringInvoiceTemplateItem
 from app.models.exchange_rate import ExchangeRate
 from app.models.reminder import ReminderSetting, ReminderHistory
+from app.models.invoice_template import InvoiceTemplate, UserTemplateDefault

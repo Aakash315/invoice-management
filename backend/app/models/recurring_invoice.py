@@ -51,7 +51,7 @@ class RecurringInvoice(Base):
     client = relationship("Client", back_populates="recurring_invoices")
     created_by_user = relationship("User", back_populates="recurring_invoices")
     template_items = relationship("RecurringInvoiceTemplateItem", back_populates="recurring_invoice", cascade="all, delete-orphan")
-    generated_invoices = relationship("Invoice", back_populates="template", foreign_keys="Invoice.template_id")
+    generated_invoices = relationship("Invoice", back_populates="recurring_template", foreign_keys="Invoice.recurring_template_id")
 
 class RecurringInvoiceTemplateItem(Base):
     __tablename__ = "recurring_invoice_template_items"

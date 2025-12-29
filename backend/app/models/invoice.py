@@ -34,8 +34,11 @@ class Invoice(Base):
     terms = Column(Text)
     
     # Recurring Invoice Support
-    template_id = Column(Integer, ForeignKey("recurring_invoices.id"), nullable=True)
+    recurring_template_id = Column(Integer, ForeignKey("recurring_invoices.id"), nullable=True)
     generated_by_template = Column(Boolean, default=False, nullable=False)
+    
+    # Invoice Design Template Support
+    design_template_id = Column(Integer, ForeignKey("invoice_templates.id"), nullable=True)
     
     # Metadata
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
@@ -49,7 +52,8 @@ class Invoice(Base):
     payments = relationship("Payment", back_populates="invoice", cascade="all, delete-orphan")
     email_history = relationship("EmailHistory", back_populates="invoice", cascade="all, delete-orphan")
     reminder_history = relationship("ReminderHistory", back_populates="invoice", cascade="all, delete-orphan")
-    template = relationship("RecurringInvoice", back_populates="generated_invoices", foreign_keys="Invoice.template_id")
+    recurring_template = relationship("RecurringInvoice", back_populates="generated_invoices", foreign_keys="Invoice.recurring_template_id")
+    design_template = relationship("InvoiceTemplate", back_populates="invoices")
 
 class InvoiceItem(Base):
     __tablename__ = "invoice_items"

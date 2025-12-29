@@ -4,6 +4,7 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { invoiceService } from '../../services/invoiceService';
 import { clientService } from '../../services/clientService';
+import { templateService } from '../../services/templateService';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -13,7 +14,9 @@ const InvoiceForm = () => {
   const navigate = useNavigate();
 
   const [clients, setClients] = useState([]);
+  const [templates, setTemplates] = useState([]);
   const [clientsLoading, setClientsLoading] = useState(true);
+  const [templatesLoading, setTemplatesLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(!!id);
 
@@ -42,6 +45,7 @@ const InvoiceForm = () => {
     terms: Yup.string(),
     currency: Yup.string().required('Currency is required'),
     exchange_rate: Yup.number().min(0),
+    design_template_id: Yup.number().nullable(),
   });
 
   const formik = useFormik({
@@ -57,6 +61,7 @@ const InvoiceForm = () => {
       terms: 'Payment due within 30 days',
       currency: 'INR',
       exchange_rate: 1,
+      design_template_id: null,
     },
     validationSchema,
 
@@ -86,23 +91,36 @@ const InvoiceForm = () => {
 
 
 
-  // Fetch clients on mount
+  // Fetch clients and templates on mount
   useEffect(() => {
-    const fetchClients = async () => {
+    const fetchData = async () => {
       try {
         setClientsLoading(true);
-        const data = await clientService.getAll();
-        // API returns array directly, not wrapped in object
-        const clientsList = Array.isArray(data) ? data : (data.data || []);
+        setTemplatesLoading(true);
+        
+        // Fetch clients
+        const clientsData = await clientService.getAll();
+        const clientsList = Array.isArray(clientsData) ? clientsData : (clientsData.data || []);
         setClients(clientsList);
+        
+        // Fetch templates
+        try {
+          const templatesData = await templateService.getTemplates();
+          setTemplates(templatesData || []);
+        } catch (templateError) {
+          console.warn('Failed to fetch templates:', templateError);
+          setTemplates([]);
+        }
       } catch (error) {
-        toast.error('Failed to fetch clients');
+        toast.error('Failed to fetch data');
         setClients([]); // Set empty array on error
+        setTemplates([]); // Set empty array on error
       } finally {
         setClientsLoading(false);
+        setTemplatesLoading(false);
       }
     };
-    fetchClients();
+    fetchData();
   }, []);
 
   // Fetch invoice if editing
@@ -123,6 +141,7 @@ const InvoiceForm = () => {
             notes: invoice.notes || '',
             terms: invoice.terms || '',
             currency: invoice.currency || 'INR',
+            design_template_id: invoice.design_template_id || null,
           });
         } catch (error) {
           toast.error('Failed to fetch invoice');
@@ -327,6 +346,32 @@ const InvoiceForm = () => {
               />
             </div>
           )}
+          
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Design Template
+            </label>
+            <select
+              name="design_template_id"
+              value={formik.values.design_template_id || ''}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              className="input-field max-w-xs"
+            >
+              <option value="">Default Template</option>
+              {templates.map((template) => (
+                <option key={template.id} value={template.id}>
+                  {template.name}
+                  {template.is_default && ' (Default)'}
+                </option>
+              ))}
+            </select>
+            {templatesLoading && (
+              <p className="mt-1 text-sm text-gray-500">
+                Loading templates...
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Line Items */}

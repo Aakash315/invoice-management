@@ -31,6 +31,7 @@ class InvoiceBase(BaseModel):
     terms: Optional[str] = None
     status: str = "draft"
     currency: str = "INR"
+    design_template_id: Optional[int] = None
 
 class InvoiceCreate(InvoiceBase):
     items: List[InvoiceItemCreate]
@@ -49,6 +50,7 @@ class InvoiceUpdate(BaseModel):
     items: Optional[List[InvoiceItemCreate]] = None
     currency: Optional[str] = None
     exchange_rate: Optional[float] = None
+    design_template_id: Optional[int] = None
 
 
 
@@ -61,6 +63,7 @@ class InvoiceResponse(InvoiceBase):
     payment_status: str
     paid_amount: float
     balance: float
+    design_template_id: Optional[int] = None
     client: Optional[ClientResponse] = None
     items: Optional[List[InvoiceItemResponse]] = None
 

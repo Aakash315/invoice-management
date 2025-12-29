@@ -195,6 +195,7 @@ async def create_invoice(
         status=invoice_data.status,
         notes=invoice_data.notes,
         terms=invoice_data.terms,
+        design_template_id=invoice_data.design_template_id,
         created_by=current_user.id
     )
     
@@ -251,6 +252,8 @@ async def update_invoice(
         invoice.discount = invoice_data.discount
     if invoice_data.currency is not None:
         invoice.currency = invoice_data.currency
+    if invoice_data.design_template_id is not None:
+        invoice.design_template_id = invoice_data.design_template_id
 
     # Update items if provided
     if invoice_data.items is not None:

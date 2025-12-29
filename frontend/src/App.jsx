@@ -29,6 +29,8 @@ import ClientInvoiceView from './components/invoices/ClientInvoiceView';
 import RecurringInvoiceList from './components/invoices/RecurringInvoiceList';
 import RecurringInvoiceForm from './components/invoices/RecurringInvoiceForm';
 import RecurringInvoiceView from './components/invoices/RecurringInvoiceView';
+import TemplateGallery from './components/templates/TemplateGallery';
+import TemplateForm from './components/templates/TemplateForm';
 import Reports from './components/reports/Reports';
 import ClientPaymentHistory from './components/payments/ClientPaymentHistory';
 import ReminderSettings from './components/settings/ReminderSettings';
@@ -68,6 +70,10 @@ function App() {
               <Route path="recurring-invoices/new" element={<RecurringInvoiceForm />} />
               <Route path="recurring-invoices/edit/:id" element={<RecurringInvoiceForm />} />
               <Route path="recurring-invoices/view/:id" element={<RecurringInvoiceView />} />
+
+              <Route path="templates" element={<TemplateGallery />} />
+              <Route path="templates/new" element={<TemplateForm />} />
+              <Route path="templates/edit/:id" element={<TemplateForm />} />
 
               <Route path="reports" element={<Reports />} />
               <Route path="settings/reminders" element={<ReminderSettings />} />

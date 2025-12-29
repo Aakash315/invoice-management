@@ -1,51 +1,105 @@
-# React Infinite Loop Fix - TODO
+# Invoice Templates Implementation TODO
 
-## Phase 1: Fix InvoiceList.jsx Circular Dependencies
+## Phase 1: Database Schema & Models ✅ IN PROGRESS
 
-### Step 1: Identify and fix circular dependency in InvoiceList.jsx
-- [x] Analyze the current implementation
-- [x] Create brainstorm plan
-- [x] Fix the circular dependency between `justUpdated`, `justReturnedFromForm`, and useEffect hooks
-- [x] Simplify the state management approach
-- [x] Test the changes
+### Backend Models
+- [ ] Create InvoiceTemplate model (`backend/app/models/invoice_template.py`)
+- [ ] Create UserTemplateDefault model
+- [ ] Update Invoice model to include template_id field
+- [ ] Create database migration for new tables
+- [ ] Create schema models for API responses (`backend/app/schemas/invoice_template.py`)
+- [ ] Update models/__init__.py to include new models
 
-### Step 2: Review InvoiceView.jsx for optimization opportunities
-- [ ] Review useCallback dependencies
-- [ ] Check useApi hook integration
-- [ ] Optimize component re-renders
+### Database Migration
+- [ ] Create migration file for invoice templates tables
+- [ ] Add template_id column to existing invoices table
+- [ ] Create user_template_defaults table
+- [ ] Add foreign key relationships
 
-### Step 3: Testing & Validation
-- [ ] Test invoice list navigation
-- [ ] Test clicking on invoices
-- [ ] Verify no console errors
-- [ ] Ensure proper functionality
+## Phase 2: Backend API Development
 
-## Implementation Details
+### Template CRUD Operations
+- [ ] Create templates router (`backend/app/routers/templates.py`)
+- [ ] Implement GET /templates endpoint
+- [ ] Implement GET /templates/{id} endpoint  
+- [ ] Implement POST /templates endpoint
+- [ ] Implement PUT /templates/{id} endpoint
+- [ ] Implement DELETE /templates/{id} endpoint
 
-### Current Issue in InvoiceList.jsx:
-```javascript
-// Circular dependency detected:
-const justReturnedFromForm = location.state?.refresh || justUpdated;
+### Template Management
+- [ ] POST /templates/{id}/duplicate endpoint
+- [ ] GET /templates/{id}/preview endpoint
+- [ ] PUT /templates/default endpoint
+- [ ] Integration with invoice creation
 
-useEffect(() => {
-  const invoiceUpdated = sessionStorage.getItem('invoiceUpdated');
-  if (invoiceUpdated === 'true') {
-    setJustUpdated(true);
-    sessionStorage.removeItem('invoiceUpdated');
-  }
-}, []);
+### PDF Enhancement
+- [ ] Update pdf generator to support templates
+- [ ] Create template renderer utility
+- [ ] Implement template-based styling
 
-useEffect(() => {
-  fetchInvoices();
-}, [filters, justReturnedFromForm]); // This causes infinite loop
+## Phase 3: Frontend Template Management
 
-// Cleanup effect to reset justUpdated flag after use
-useEffect(() => {
-  if (justUpdated) {
-    setJustUpdated(false); // This causes re-render which triggers previous useEffect
-  }
-}, [justUpdated]);
-```
+### Template Components
+- [ ] Create TemplateGallery component
+- [ ] Create TemplateEditor component
+- [ ] Create TemplateSettings component
+- [ ] Create TemplatePreview component
 
-### Proposed Fix:
-Replace the circular dependency with a simpler approach using sessionStorage directly in the effect that calls fetchInvoices.
+### Services & API
+- [ ] Create templateService.js
+- [ ] Update API service for template endpoints
+- [ ] Add template state management
+
+### Integration Updates
+- [ ] Update InvoiceForm to include template selection
+- [ ] Update InvoiceView to display template info
+- [ ] Add template settings to user profile
+
+## Phase 4: Template Implementation
+
+### Default Templates
+- [ ] Create Modern template configuration
+- [ ] Create Classic template configuration
+- [ ] Create Minimal template configuration
+- [ ] Create Corporate template configuration
+
+### PDF Template Engine
+- [ ] Implement template-based PDF generation
+- [ ] Add color scheme support
+- [ ] Add font family support
+- [ ] Add layout customization
+
+## Phase 5: Advanced Features
+
+### Logo Management
+- [ ] Logo upload functionality
+- [ ] Logo storage and retrieval
+- [ ] Logo positioning options
+
+### Advanced Customization
+- [ ] Field visibility controls
+- [ ] Custom CSS support
+- [ ] Template export/import
+
+### User Experience
+- [ ] Template gallery with live previews
+- [ ] Template comparison interface
+- [ ] Quick template switching
+
+## Testing & Polish
+
+### Testing
+- [ ] Backend API testing
+- [ ] Frontend component testing
+- [ ] PDF generation testing
+- [ ] Template integration testing
+
+### Documentation
+- [ ] User documentation for template features
+- [ ] Developer documentation for template system
+- [ ] API documentation updates
+
+## Implementation Status: STARTING PHASE 1
+
+**Current Step:** Creating InvoiceTemplate model and database migration
+**Next Step:** Database migration execution and backend API implementation
