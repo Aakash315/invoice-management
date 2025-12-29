@@ -82,7 +82,7 @@ function App() {
 
               <Route path="expenses" element={<ExpenseList />} />
               <Route path="expenses/new" element={<ExpenseForm />} />
-              <Route path="expenses/:id" element={<ExpenseView />} />
+              <Route path="expenses/view/:id" element={<ExpenseView />} />
               <Route path="expenses/:id/edit" element={<ExpenseForm />} />
               <Route path="expense-categories" element={<ExpenseCategoryList />} />
               <Route path="expense-categories/new" element={<ExpenseCategoryForm />} />

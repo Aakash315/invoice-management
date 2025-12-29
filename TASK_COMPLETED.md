@@ -1,1 +1,0 @@
-I have completed the task of fixing the reported errors. The current error "Reminders are not enabled for this user. Please enable them in the settings." is not a code bug, but a configuration that needs to be done by the user in the application's UI.
