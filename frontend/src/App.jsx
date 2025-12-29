@@ -32,6 +32,7 @@ import RecurringInvoiceView from './components/invoices/RecurringInvoiceView';
 import TemplateGallery from './components/templates/TemplateGallery';
 import TemplateForm from './components/templates/TemplateForm';
 import ExpenseList from './components/expenses/ExpenseList';
+import ExpenseView from './components/expenses/ExpenseView';
 import ExpenseForm from './components/expenses/ExpenseForm';
 import ExpenseCategoryList from './components/expenses/ExpenseCategoryList';
 import ExpenseCategoryForm from './components/expenses/ExpenseCategoryForm';
@@ -81,6 +82,7 @@ function App() {
 
               <Route path="expenses" element={<ExpenseList />} />
               <Route path="expenses/new" element={<ExpenseForm />} />
+              <Route path="expenses/:id" element={<ExpenseView />} />
               <Route path="expenses/:id/edit" element={<ExpenseForm />} />
               <Route path="expense-categories" element={<ExpenseCategoryList />} />
               <Route path="expense-categories/new" element={<ExpenseCategoryForm />} />
