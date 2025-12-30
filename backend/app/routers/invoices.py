@@ -1,7 +1,7 @@
 from app.utils.template_renderer import get_template_renderer
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Form, File, UploadFile
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import or_, and_, func
 from typing import List, Optional
 from app.database import get_db
 from app.models.invoice import Invoice, InvoiceItem
@@ -116,6 +116,15 @@ async def get_invoices(
     client_id: Optional[int] = Query(None),
     currency: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
+    recurring: Optional[str] = Query(None),
+    # Date filters
+    date_range: Optional[str] = Query(None),
+    date_from: Optional[str] = Query(None),
+    date_to: Optional[str] = Query(None),
+    # Amount filters
+    amount_range: Optional[str] = Query(None),
+    amount_min: Optional[float] = Query(None),
+    amount_max: Optional[float] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -129,6 +138,24 @@ async def get_invoices(
         query = query.filter(Invoice.client_id == client_id)
     if currency:
         query = query.filter(Invoice.currency == currency)
+    
+    # Add recurring filter
+    if recurring == 'true':
+        query = query.filter(Invoice.generated_by_template == True)
+    elif recurring == 'false':
+        query = query.filter(Invoice.generated_by_template == False)
+    
+    # Add date range filters
+    if date_from:
+        query = query.filter(Invoice.issue_date >= date_from)
+    if date_to:
+        query = query.filter(Invoice.issue_date <= date_to)
+    
+    # Add amount range filters
+    if amount_min is not None:
+        query = query.filter(Invoice.total_amount >= amount_min)
+    if amount_max is not None:
+        query = query.filter(Invoice.total_amount <= amount_max)
     
     # Add search functionality
     if search:

@@ -118,6 +118,9 @@ const InvoiceList = () => {
   const handleDateRangeChange = (value) => {
     if (value === 'custom') {
       setFilters({ ...filters, date_range: value });
+    } else if (value === '') {
+      // Reset date filters when "All Dates" is selected
+      setFilters({ ...filters, date_range: '', date_from: '', date_to: '' });
     } else {
       const range = getDateRange(value);
       setFilters({ ...filters, date_range: value, ...range });
@@ -125,6 +128,17 @@ const InvoiceList = () => {
   };
 
   const handleAmountRangeChange = (value) => {
+    if (value === '') {
+      // Reset amount filters when "All Amounts" is selected
+      setFilters({
+        ...filters,
+        amount_range: '',
+        amount_min: '',
+        amount_max: ''
+      });
+      return;
+    }
+
     let min = '', max = '';
 
     if (value === '0-10000') {
@@ -365,7 +379,14 @@ const InvoiceList = () => {
 
           {(filters.date_range || filters.amount_range) && (
             <button
-              onClick={() => setFilters({ date_range: '', amount_range: '' })}
+              onClick={() => setFilters({ 
+                date_range: '', 
+                date_from: '', 
+                date_to: '',
+                amount_range: '', 
+                amount_min: '', 
+                amount_max: '' 
+              })}
               className="text-sm text-primary-600 hover:text-primary-700"
             >
               Clear Filters
