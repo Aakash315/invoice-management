@@ -29,6 +29,12 @@ const InvoiceList = () => {
     recurring: '', // '', 'true', 'false'
     currency: '',
     search: '',
+    date_range: '',
+    date_from: '',
+    date_to: '',
+    amount_range: '',
+    amount_min: '',
+    amount_max: '',
   });
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, invoice: null });
   const navigate = useNavigate();
@@ -73,6 +79,68 @@ const InvoiceList = () => {
         toast.error('Failed to delete invoice');
       }
     }
+  };
+
+  /* ---------------- DATE & AMOUNT FILTER HELPERS ---------------- */
+
+  const getDateRange = (range) => {
+    const now = new Date();
+    let start, end;
+
+    switch (range) {
+      case 'this_week':
+        start = new Date(now.setDate(now.getDate() - now.getDay()));
+        end = new Date();
+        break;
+
+      case 'this_month':
+        start = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+        end = new Date();
+        break;
+
+      case 'last_quarter':
+        const quarter = Math.floor((new Date().getMonth() + 3) / 3) - 1;
+        start = new Date(new Date().getFullYear(), quarter * 3 - 3, 1);
+        end = new Date(new Date().getFullYear(), quarter * 3, 0);
+        break;
+
+      default:
+        return {};
+    }
+
+    return {
+      date_from: start.toISOString().split('T')[0],
+      date_to: end.toISOString().split('T')[0],
+    };
+  };
+
+
+  const handleDateRangeChange = (value) => {
+    if (value === 'custom') {
+      setFilters({ ...filters, date_range: value });
+    } else {
+      const range = getDateRange(value);
+      setFilters({ ...filters, date_range: value, ...range });
+    }
+  };
+
+  const handleAmountRangeChange = (value) => {
+    let min = '', max = '';
+
+    if (value === '0-10000') {
+      min = 0; max = 10000;
+    } else if (value === '10000-50000') {
+      min = 10000; max = 50000;
+    } else if (value === '50000+') {
+      min = 50000;
+    }
+
+    setFilters({
+      ...filters,
+      amount_range: value,
+      amount_min: min,
+      amount_max: max
+    });
   };
 
   const getStatusColor = (status) => {
@@ -217,6 +285,87 @@ const InvoiceList = () => {
           {(filters.status || filters.payment_status || filters.recurring || filters.currency) && (
             <button
               onClick={() => setFilters({ status: '', payment_status: '', recurring: '', currency: '' })}
+              className="text-sm text-primary-600 hover:text-primary-700"
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="card p-5">
+        <div className="flex items-center space-x-4">
+          {/* Filter Dropdowns */}
+          <FunnelIcon className="h-5 w-5 text-gray-400" />
+          {/* Date Range Filter */}
+          <select
+            value={filters.date_range}
+            onChange={(e) => handleDateRangeChange(e.target.value)}
+            className="input-field"
+          >
+            <option value="">All Dates</option>
+            <option value="this_week">This Week</option>
+            <option value="this_month">This Month</option>
+            <option value="last_quarter">Last Quarter</option>
+            <option value="custom">Custom</option>
+          </select>
+
+          {filters.date_range === 'custom' && (
+            <>
+              <input
+                type="date"
+                value={filters.date_from}
+                onChange={(e) => setFilters({ ...filters, date_from: e.target.value })}
+                className="input-field"
+              />
+              <input
+                type="date"
+                value={filters.date_to}
+                onChange={(e) => setFilters({ ...filters, date_to: e.target.value })}
+                className="input-field"
+              />
+            </>
+          )}
+
+          {/* Amount Range */}
+          <select
+            value={filters.amount_range}
+            onChange={(e) => handleAmountRangeChange(e.target.value)}
+            className="input-field"
+          >
+            <option value="">All Amounts</option>
+            <option value="0-10000">₹0 – ₹10,000</option>
+            <option value="10000-50000">₹10,000 – ₹50,000</option>
+            <option value="50000+">₹50,000+</option>
+            <option value="custom">Custom</option>
+          </select>
+
+          {filters.amount_range === 'custom' && (
+            <>
+              <input
+                type="number"
+                placeholder="Min"
+                value={filters.amount_min}
+                onChange={(e) =>
+                  setFilters({ ...filters, amount_min: e.target.value })
+                }
+                className="input-field"
+              />
+              <input
+                type="number"
+                placeholder="Max"
+                value={filters.amount_max}
+                onChange={(e) =>
+                  setFilters({ ...filters, amount_max: e.target.value })
+                }
+                className="input-field"
+              />
+            </>
+          )}
+
+          {(filters.date_range || filters.amount_range) && (
+            <button
+              onClick={() => setFilters({ date_range: '', amount_range: '' })}
               className="text-sm text-primary-600 hover:text-primary-700"
             >
               Clear Filters
