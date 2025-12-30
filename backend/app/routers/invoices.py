@@ -1,9 +1,11 @@
 from app.utils.template_renderer import get_template_renderer
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Form, File, UploadFile
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from typing import List, Optional
 from app.database import get_db
 from app.models.invoice import Invoice, InvoiceItem
+from app.models.client import Client
 from app.models.email_history import EmailHistory, EmailStatus
 from app.models.user import User
 from app.schemas.invoice import InvoiceCreate, InvoiceUpdate, InvoiceResponse
@@ -113,10 +115,11 @@ async def get_invoices(
     payment_status: Optional[str] = Query(None),
     client_id: Optional[int] = Query(None),
     currency: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    query = db.query(Invoice)
+    query = db.query(Invoice).join(Invoice.client)
     
     if status:
         query = query.filter(Invoice.status == status)
@@ -126,6 +129,19 @@ async def get_invoices(
         query = query.filter(Invoice.client_id == client_id)
     if currency:
         query = query.filter(Invoice.currency == currency)
+    
+    # Add search functionality
+    if search:
+        search_term = f"%{search.lower()}%"
+        query = query.filter(
+            or_(
+                Invoice.invoice_number.ilike(search_term),
+                Client.name.ilike(search_term),
+                Client.company.ilike(search_term),
+                Invoice.status.ilike(search_term),
+                Invoice.payment_status.ilike(search_term)
+            )
+        )
     
     invoices = query.order_by(Invoice.created_at.desc()).all()
     

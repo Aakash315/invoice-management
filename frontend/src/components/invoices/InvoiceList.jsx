@@ -9,6 +9,8 @@ import {
   TrashIcon,
   FunnelIcon,
   ArrowPathIcon,
+  MagnifyingGlassIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -20,11 +22,13 @@ const InvoiceList = () => {
 
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({
     status: '',
     payment_status: '',
     recurring: '', // '', 'true', 'false'
     currency: '',
+    search: '',
   });
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, invoice: null });
   const navigate = useNavigate();
@@ -44,6 +48,11 @@ const InvoiceList = () => {
 
   // Check for navigation state from form submissions
   const shouldRefresh = location.state?.refresh || sessionStorage.getItem('invoiceUpdated') === 'true';
+
+  // Sync search query with filters
+  useEffect(() => {
+    setFilters(prev => ({ ...prev, search: searchQuery }));
+  }, [searchQuery]);
 
   useEffect(() => {
     // Clear the session storage flag if it exists
@@ -101,13 +110,13 @@ const InvoiceList = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
+  // if (loading) {
+  //   return (
+  //     <div className="flex items-center justify-center h-64">
+  //       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="space-y-6 mt-20">
@@ -122,7 +131,36 @@ const InvoiceList = () => {
 
       {/* Filters */}
       <div className="card p-5">
+        <div className="space-y-4">
+          {/* Search Bar */}
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search invoices by number, client name, company, status..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+            />
+            {searchQuery && (
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <XMarkIcon className="h-5 w-5" />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="card p-5">
         <div className="flex items-center space-x-4">
+          {/* Filter Dropdowns */}
           <FunnelIcon className="h-5 w-5 text-gray-400" />
           <select
             value={filters.status}
@@ -231,7 +269,7 @@ const InvoiceList = () => {
                         {invoice.invoice_number}
                       </Link>
                       {invoice.generated_by_template && (
-                        <RecurringBadge 
+                        <RecurringBadge
                           template={invoice.template}
                           generatedDate={invoice.created_at}
                           size="sm"
