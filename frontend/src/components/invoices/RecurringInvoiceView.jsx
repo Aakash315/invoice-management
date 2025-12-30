@@ -129,7 +129,8 @@ const RecurringInvoiceView = () => {
   };
 
   const calculateTax = () => {
-    return calculateSubtotal() * 0.18; // 18% tax
+    if (!template?.tax_enabled) return 0;
+    return calculateSubtotal() * ((template.tax_rate || 0) / 100);
   };
 
   const calculateTotal = () => {
@@ -380,10 +381,12 @@ const RecurringInvoiceView = () => {
                     <span className="text-sm text-gray-600">Subtotal:</span>
                     <span className="text-sm font-medium text-gray-900">₹{calculateSubtotal().toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm text-gray-600">Tax (18%):</span>
-                    <span className="text-sm font-medium text-gray-900">₹{calculateTax().toFixed(2)}</span>
-                  </div>
+                  {template.tax_enabled && template.tax_rate > 0 && (
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm text-gray-600">Tax ({template.tax_rate}%):</span>
+                      <span className="text-sm font-medium text-gray-900">₹{calculateTax().toFixed(2)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center">
                     <span className="text-lg font-semibold text-gray-900">Total:</span>
                     <span className="text-lg font-semibold text-gray-900">₹{calculateTotal().toFixed(2)}</span>

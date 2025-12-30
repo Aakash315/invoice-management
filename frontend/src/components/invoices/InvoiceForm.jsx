@@ -19,6 +19,7 @@ const InvoiceForm = () => {
   const [templatesLoading, setTemplatesLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(!!id);
+  const [taxEnabled, setTaxEnabled] = useState(false);
 
   const validationSchema = Yup.object({
     client_id: Yup.number().required('Client is required'),
@@ -54,7 +55,7 @@ const InvoiceForm = () => {
       issue_date: format(new Date(), 'yyyy-MM-dd'),
       due_date: format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
       items: [{ description: '', quantity: 1, rate: 0 }],
-      tax_rate: 18,
+      tax_rate: 0,
       discount: 0,
       status: 'draft',
       notes: '',
@@ -68,14 +69,19 @@ const InvoiceForm = () => {
     onSubmit: async (values) => {
       setLoading(true);
       try {
+        // Set tax_rate to 0 if tax is disabled
+        const submitValues = {
+          ...values,
+          tax_rate: taxEnabled ? values.tax_rate : 0,
+        };
 
         if (id) {
-          await invoiceService.update(id, values);
+          await invoiceService.update(id, submitValues);
           toast.success('Invoice updated successfully');
           // Set flag to refresh invoice list
           sessionStorage.setItem('invoiceUpdated', 'true');
         } else {
-          await invoiceService.create(values);
+          await invoiceService.create(submitValues);
           toast.success('Invoice created successfully');
         }
         navigate('/invoices', { state: { refresh: true } });
@@ -130,12 +136,14 @@ const InvoiceForm = () => {
 
         try {
           const invoice = await invoiceService.getById(id);
+          const hasTax = invoice.tax_rate && invoice.tax_rate > 0;
+          setTaxEnabled(hasTax);
           formik.setValues({
             client_id: invoice.client_id,
             issue_date: invoice.issue_date,
             due_date: invoice.due_date,
             items: invoice.items || [],
-            tax_rate: invoice.tax_rate,
+            tax_rate: invoice.tax_rate || 0,
             discount: invoice.discount,
             status: invoice.status,
             notes: invoice.notes || '',
@@ -151,6 +159,8 @@ const InvoiceForm = () => {
         }
       };
       fetchInvoice();
+    } else {
+      setInitialLoading(false);
     }
   }, [id]);
 
@@ -160,7 +170,7 @@ const InvoiceForm = () => {
       (sum, item) => sum + (item.quantity || 0) * (item.rate || 0),
       0
     );
-    const taxAmount = (subtotal * (formik.values.tax_rate || 0)) / 100;
+    const taxAmount = taxEnabled ? (subtotal * (formik.values.tax_rate || 0)) / 100 : 0;
     const total = subtotal + taxAmount - (formik.values.discount || 0);
 
     return {
@@ -206,6 +216,16 @@ const InvoiceForm = () => {
     const newItems = [...formik.values.items];
     newItems[index][field] = value;
     formik.setFieldValue('items', newItems);
+  };
+
+  const handleTaxToggle = (e) => {
+    const enabled = e.target.checked;
+    setTaxEnabled(enabled);
+    if (!enabled) {
+      formik.setFieldValue('tax_rate', 0);
+    } else if (formik.values.tax_rate === 0) {
+      formik.setFieldValue('tax_rate', 18); // Default to 18% when enabling
+    }
   };
 
   if (initialLoading) {
@@ -475,21 +495,38 @@ const InvoiceForm = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tax Rate (%)
-                </label>
+              {/* Tax Toggle */}
+              <div className="flex items-center">
                 <input
-                  type="number"
-                  name="tax_rate"
-                  value={formik.values.tax_rate}
-                  onChange={formik.handleChange}
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  className="input-field max-w-xs"
+                  type="checkbox"
+                  id="tax_enabled"
+                  checked={taxEnabled}
+                  onChange={handleTaxToggle}
+                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                 />
+                <label htmlFor="tax_enabled" className="ml-2 text-sm font-medium text-gray-700">
+                  Enable Tax
+                </label>
               </div>
+
+              {/* Tax Rate Input - Only visible when tax is enabled */}
+              {taxEnabled && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tax Rate (%)
+                  </label>
+                  <input
+                    type="number"
+                    name="tax_rate"
+                    value={formik.values.tax_rate}
+                    onChange={formik.handleChange}
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    className="input-field max-w-xs"
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -512,12 +549,14 @@ const InvoiceForm = () => {
                 <span className="text-gray-600">Subtotal:</span>
                 <span className="font-medium">{currencySymbol}{totals.subtotal}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">
-                  Tax ({formik.values.tax_rate}%):
-                </span>
-                <span className="font-medium">{currencySymbol}{totals.taxAmount}</span>
-              </div>
+              {taxEnabled && formik.values.tax_rate > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">
+                    Tax ({formik.values.tax_rate}%):
+                  </span>
+                  <span className="font-medium">{currencySymbol}{totals.taxAmount}</span>
+                </div>
+              )}
               {formik.values.discount > 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Discount:</span>
@@ -596,3 +635,4 @@ const InvoiceForm = () => {
 };
 
 export default InvoiceForm;
+

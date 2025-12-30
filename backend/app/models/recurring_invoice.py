@@ -36,6 +36,10 @@ class RecurringInvoice(Base):
     generation_count = Column(Integer, default=0, nullable=False)  # how many times generated
     failed_generations = Column(Integer, default=0, nullable=False)  # failed attempts
     
+    # Tax Configuration
+    tax_enabled = Column(Boolean, default=False, nullable=False)
+    tax_rate = Column(Float, default=0.0, nullable=False)
+    
     # Email Configuration
     email_subject = Column(String(255), nullable=True)
     email_message = Column(Text, nullable=True)

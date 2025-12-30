@@ -25,6 +25,8 @@ const RecurringInvoiceForm = () => {
     auto_send: false,
     email_subject: '',
     email_message: '',
+    tax_enabled: false,
+    tax_rate: 0,
     items: [],
   });
 
@@ -58,6 +60,7 @@ const RecurringInvoiceForm = () => {
     try {
       setLoading(true);
       const template = await recurringInvoiceService.getById(id);
+      const hasTax = template.tax_rate && template.tax_rate > 0;
       setFormData({
         template_name: template.template_name,
         client_id: template.client_id,
@@ -72,6 +75,8 @@ const RecurringInvoiceForm = () => {
         auto_send: template.auto_send,
         email_subject: template.email_subject || '',
         email_message: template.email_message || '',
+        tax_enabled: hasTax,
+        tax_rate: template.tax_rate || 0,
         items: template.template_items?.map(item => ({
           description: item.description,
           quantity: item.quantity,
@@ -115,6 +120,24 @@ const RecurringInvoiceForm = () => {
 
   const calculateSubtotal = () => {
     return formData.items.reduce((sum, item) => sum + calculateItemAmount(item), 0);
+  };
+
+  const calculateTaxAmount = () => {
+    if (!formData.tax_enabled) return 0;
+    return calculateSubtotal() * ((formData.tax_rate || 0) / 100);
+  };
+
+  const calculateTotal = () => {
+    return calculateSubtotal() + calculateTaxAmount();
+  };
+
+  const handleTaxToggle = (e) => {
+    const enabled = e.target.checked;
+    setFormData(prev => ({
+      ...prev,
+      tax_enabled: enabled,
+      tax_rate: enabled && prev.tax_rate === 0 ? 18 : prev.tax_rate
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -171,6 +194,7 @@ const RecurringInvoiceForm = () => {
         client_id: parseInt(formData.client_id),
         start_date: formData.start_date,
         end_date: formData.end_date || null,
+        tax_rate: formData.tax_enabled ? formData.tax_rate : 0,
         items: formData.items.map(item => ({
           ...item,
           quantity: parseInt(item.quantity),
@@ -552,12 +576,51 @@ const RecurringInvoiceForm = () => {
                 <p className="text-lg font-semibold text-gray-900">
                   Subtotal: ₹{calculateSubtotal().toFixed(2)}
                 </p>
-                <p className="text-sm text-gray-600">
-                  Tax (18%): ₹{(calculateSubtotal() * 0.18).toFixed(2)}
-                </p>
+                {formData.tax_enabled && formData.tax_rate > 0 && (
+                  <p className="text-sm text-gray-600">
+                    Tax ({formData.tax_rate}%): ₹{calculateTaxAmount().toFixed(2)}
+                  </p>
+                )}
                 <p className="text-xl font-bold text-gray-900">
-                  Total: ₹{(calculateSubtotal() * 1.18).toFixed(2)}
+                  Total: ₹{calculateTotal().toFixed(2)}
                 </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Tax Settings */}
+        <div className="card p-8">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Tax Settings</h3>
+          
+          <div className="space-y-4">
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="tax_enabled"
+                checked={formData.tax_enabled}
+                onChange={handleTaxToggle}
+                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+              />
+              <label htmlFor="tax_enabled" className="ml-2 text-sm text-gray-700">
+                Enable Tax
+              </label>
+            </div>
+
+            {formData.tax_enabled && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tax Rate (%)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value={formData.tax_rate}
+                  onChange={(e) => setFormData(prev => ({ ...prev, tax_rate: parseFloat(e.target.value) || 0 }))}
+                  className="input-field max-w-xs"
+                />
               </div>
             )}
           </div>
@@ -658,3 +721,4 @@ const RecurringInvoiceForm = () => {
 };
 
 export default RecurringInvoiceForm;
+

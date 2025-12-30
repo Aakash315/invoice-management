@@ -32,6 +32,8 @@ class RecurringInvoiceBase(BaseModel):
     occurrences_limit: Optional[int] = None
     is_active: bool = True
     auto_send: bool = False
+    tax_enabled: bool = False
+    tax_rate: float = 0.0
     email_subject: Optional[str] = None
     email_message: Optional[str] = None
 
@@ -50,6 +52,8 @@ class RecurringInvoiceUpdate(BaseModel):
     occurrences_limit: Optional[int] = None
     is_active: Optional[bool] = None
     auto_send: Optional[bool] = None
+    tax_enabled: Optional[bool] = None
+    tax_rate: Optional[float] = None
     email_subject: Optional[str] = None
     email_message: Optional[str] = None
     items: Optional[List[RecurringInvoiceTemplateItemCreate]] = None
