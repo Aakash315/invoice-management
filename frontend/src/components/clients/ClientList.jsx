@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useClients } from '../../hooks/useClients';
 import {
@@ -6,14 +6,85 @@ import {
   PencilIcon,
   TrashIcon,
   MagnifyingGlassIcon,
+  XMarkIcon,
+  ClockIcon,
 } from '@heroicons/react/24/outline';
+import toast from 'react-hot-toast';
 import DeleteConfirmModal from '../common/DeleteConfirmModal';
 
 const ClientList = () => {
   const { clients, loading, deleteClient } = useClients();
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchHistory, setSearchHistory] = useState(() => {
+    const saved = localStorage.getItem('clientSearchHistory');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const searchRef = useRef(null);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, client: null });
   const navigate = useNavigate();
+
+  // Maximum number of search history items to store
+  const MAX_HISTORY_ITEMS = 10;
+
+  // Save search history to localStorage
+  useEffect(() => {
+    localStorage.setItem('clientSearchHistory', JSON.stringify(searchHistory));
+  }, [searchHistory]);
+
+  // Handle click outside to close search history dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setIsSearchFocused(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Add search term to history
+  const addToSearchHistory = (term) => {
+    if (!term || term.trim() === '') return;
+    
+    const trimmedTerm = term.trim();
+    setSearchHistory(prev => {
+      // Remove duplicates (case insensitive)
+      const filtered = prev.filter(item => 
+        item.toLowerCase() !== trimmedTerm.toLowerCase()
+      );
+      // Add new term at the beginning and limit size
+      return [trimmedTerm, ...filtered].slice(0, MAX_HISTORY_ITEMS);
+    });
+  };
+
+  // Remove single item from history
+  const removeFromSearchHistory = (term, e) => {
+    e.stopPropagation();
+    setSearchHistory(prev => prev.filter(item => item !== term));
+  };
+
+  // Clear all search history
+  const clearSearchHistory = () => {
+    setSearchHistory([]);
+    toast.success('Search history cleared');
+  };
+
+  // Handle search submission
+  const handleSearchSubmit = (e) => {
+    e?.preventDefault();
+    if (searchTerm.trim()) {
+      addToSearchHistory(searchTerm);
+      setIsSearchFocused(false);
+    }
+  };
+
+  // Handle clicking on a history item
+  const handleHistoryItemClick = (term) => {
+    setSearchTerm(term);
+    setIsSearchFocused(false);
+  };
 
   // Filter clients based on search
   const filteredClients = clients.filter(
@@ -54,18 +125,80 @@ const ClientList = () => {
       </div>
 
       {/* Search */}
-      <div className="card">
-        <div className="relative">
+      <div className="card overflow-visible">
+        <div className="relative" ref={searchRef}>
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
           </div>
-          <input
-            type="text"
-            placeholder="Search clients by name, email, or company..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-          />
+          <form onSubmit={handleSearchSubmit}>
+            <input
+              type="text"
+              placeholder="Search clients by name, email, or company..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setIsSearchFocused(true);
+              }}
+              onFocus={() => setIsSearchFocused(true)}
+              className="block w-full pl-10 pr-20 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+            />
+          </form>
+          <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+            {searchTerm ? (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <XMarkIcon className="h-5 w-5" />
+              </button>
+            ) : (
+              <span className="text-gray-300 text-xs border border-gray-300 rounded px-1.5 py-0.5">Enter</span>
+            )}
+          </div>
+          
+          {/* Search History Dropdown */}
+          {isSearchFocused && (searchHistory.length > 0 || searchTerm.length > 0) && (
+            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-64 overflow-y-auto">
+              {searchHistory.length > 0 ? (
+                <>
+                  <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between">
+                    <div className="flex items-center text-xs text-gray-500">
+                      <ClockIcon className="h-4 w-4 mr-1" />
+                      Recent searches
+                    </div>
+                    <button
+                      onClick={clearSearchHistory}
+                      className="text-xs text-red-600 hover:text-red-700 flex items-center"
+                    >
+                      <TrashIcon className="h-3 w-3 mr-1" />
+                      Clear all
+                    </button>
+                  </div>
+                  <ul>
+                    {searchHistory.map((term, index) => (
+                      <li
+                        key={`${term}-${index}`}
+                        onClick={() => handleHistoryItemClick(term)}
+                        className="px-3 py-2 hover:bg-gray-50 cursor-pointer flex items-center justify-between group"
+                      >
+                        <span className="text-sm text-gray-700">{term}</span>
+                        <button
+                          onClick={(e) => removeFromSearchHistory(term, e)}
+                          className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <XMarkIcon className="h-4 w-4" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <div className="px-3 py-4 text-center text-sm text-gray-500">
+                  No recent searches yet
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
