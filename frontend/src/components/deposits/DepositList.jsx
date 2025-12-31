@@ -17,11 +17,11 @@ import {
 
 const DepositList = () => {
   const { clients, loading, refetch } = useClients();
-  const [filter, setFilter] = useState('all'); // 'all', 'with_deposit', 'without_deposit', 'history'
+  const [filter, setFilter] = useState('with_deposit');
   const [returnModalOpen, setReturnModalOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
   const [returning, setReturning] = useState(false);
-  const [returnType, setReturnType] = useState('cash'); // 'cash', 'bank_transfer', 'upi', 'check', 'other'
+  const [returnType, setReturnType] = useState('cash');
   const [historyLoading, setHistoryLoading] = useState(false);
   const [depositHistory, setDepositHistory] = useState([]);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -36,18 +36,11 @@ const DepositList = () => {
   });
   const navigate = useNavigate();
 
-  // Filter clients based on deposit status
   const filteredClients = useMemo(() => {
     if (!clients) return [];
+    return clients.filter((client) => client.has_deposit);
+  }, [clients]);
 
-    return clients.filter((client) => {
-      if (filter === 'with_deposit') return client.has_deposit;
-      if (filter === 'without_deposit') return !client.has_deposit;
-      return true;
-    });
-  }, [clients, filter]);
-
-  // Handle return deposit
   const handleReturnDeposit = async () => {
     if (!selectedClient) return;
     
@@ -57,7 +50,7 @@ const DepositList = () => {
       toast.success(`Deposit returned successfully for ${selectedClient.name}`);
       setReturnModalOpen(false);
       setSelectedClient(null);
-      refetch(); // Refresh the clients list
+      refetch();
     } catch (error) {
       console.error('Return deposit error:', error);
       toast.error(error.response?.data?.detail || 'Failed to return deposit');
@@ -66,14 +59,12 @@ const DepositList = () => {
     }
   };
 
-  // Open return deposit confirmation modal
   const openReturnModal = (client) => {
     setSelectedClient(client);
-    setReturnType('cash'); // Reset to default
+    setReturnType('cash');
     setReturnModalOpen(true);
   };
 
-  // Load deposit history
   const loadDepositHistory = async () => {
     setHistoryLoading(true);
     try {
@@ -87,7 +78,6 @@ const DepositList = () => {
     }
   };
 
-  // Handle filter change with history loading
   const handleFilterChange = (newFilter) => {
     setFilter(newFilter);
     if (newFilter === 'history') {
@@ -95,7 +85,6 @@ const DepositList = () => {
     }
   };
 
-  // Open edit modal for history record
   const openEditModal = (item) => {
     setSelectedHistory(item);
     setEditForm({
@@ -106,13 +95,11 @@ const DepositList = () => {
     setEditModalOpen(true);
   };
 
-  // Open delete confirmation modal
   const openDeleteModal = (item) => {
     setSelectedHistory(item);
     setDeleteModalOpen(true);
   };
 
-  // Handle update deposit history
   const handleUpdateHistory = async () => {
     if (!selectedHistory) return;
     
@@ -126,7 +113,7 @@ const DepositList = () => {
       toast.success('Deposit history updated successfully');
       setEditModalOpen(false);
       setSelectedHistory(null);
-      loadDepositHistory(); // Refresh history
+      loadDepositHistory();
     } catch (error) {
       console.error('Update history error:', error);
       toast.error(error.response?.data?.detail || 'Failed to update deposit history');
@@ -135,7 +122,6 @@ const DepositList = () => {
     }
   };
 
-  // Handle delete deposit history
   const handleDeleteHistory = async () => {
     if (!selectedHistory) return;
     
@@ -145,7 +131,7 @@ const DepositList = () => {
       toast.success('Deposit history deleted successfully');
       setDeleteModalOpen(false);
       setSelectedHistory(null);
-      loadDepositHistory(); // Refresh history
+      loadDepositHistory();
     } catch (error) {
       console.error('Delete history error:', error);
       toast.error(error.response?.data?.detail || 'Failed to delete deposit history');
@@ -154,17 +140,14 @@ const DepositList = () => {
     }
   };
 
-  // Calculate statistics
   const stats = useMemo(() => {
-    if (!clients) return { total: 0, withDeposit: 0, withoutDeposit: 0, totalAmount: 0 };
+    if (!clients) return { withDeposit: 0, totalAmount: 0 };
 
     const withDeposit = clients.filter(c => c.has_deposit);
     const totalAmount = withDeposit.reduce((sum, c) => sum + (c.deposit_amount || 0), 0);
 
     return {
-      total: clients.length,
       withDeposit: withDeposit.length,
-      withoutDeposit: clients.length - withDeposit.length,
       totalAmount,
     };
   }, [clients]);
@@ -179,7 +162,6 @@ const DepositList = () => {
 
   return (
     <div className="space-y-6 mt-20">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center">
           <button
@@ -199,19 +181,10 @@ const DepositList = () => {
         </Link>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="card p-5">
-          <p className="text-sm text-gray-500">Total Clients</p>
-          <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-        </div>
-        <div className="card p-5">
-          <p className="text-sm text-gray-500">With Deposit</p>
+          <p className="text-sm text-gray-500">Clients With Deposit</p>
           <p className="text-2xl font-bold text-green-600">{stats.withDeposit}</p>
-        </div>
-        <div className="card p-5">
-          <p className="text-sm text-gray-500">Without Deposit</p>
-          <p className="text-2xl font-bold text-gray-600">{stats.withoutDeposit}</p>
         </div>
         <div className="card p-5">
           <p className="text-sm text-gray-500">Total Deposit Amount</p>
@@ -219,21 +192,16 @@ const DepositList = () => {
             ₹{stats.totalAmount.toLocaleString()}
           </p>
         </div>
+        <div className="card p-5">
+          <p className="text-sm text-gray-500">Avg. Deposit</p>
+          <p className="text-2xl font-bold text-gray-600">
+            ₹{stats.withDeposit > 0 ? Math.round(stats.totalAmount / stats.withDeposit).toLocaleString() : 0}
+          </p>
+        </div>
       </div>
 
-      {/* Filter Tabs */}
       <div className="card p-4">
         <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => handleFilterChange('all')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              filter === 'all'
-                ? 'bg-primary-600 text-white'
-                : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            All Clients ({stats.total})
-          </button>
           <button
             onClick={() => handleFilterChange('with_deposit')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -243,16 +211,6 @@ const DepositList = () => {
             }`}
           >
             With Deposit ({stats.withDeposit})
-          </button>
-          <button
-            onClick={() => handleFilterChange('without_deposit')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              filter === 'without_deposit'
-                ? 'bg-gray-600 text-white'
-                : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            Without Deposit ({stats.withoutDeposit})
           </button>
           <button
             onClick={() => handleFilterChange('history')}
@@ -268,7 +226,6 @@ const DepositList = () => {
         </div>
       </div>
 
-      {/* Deposit History View */}
       {filter === 'history' && (
         <div className="card overflow-hidden">
           <div className="p-4 border-b border-gray-200 bg-amber-50">
@@ -289,27 +246,13 @@ const DepositList = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Client
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Company
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Amount Returned
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Returned Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Notes
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Return Type
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount Returned</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Returned Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Return Type</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -321,33 +264,23 @@ const DepositList = () => {
                             <UserIcon className="h-4 w-4 text-amber-600" />
                           </div>
                           <div className="ml-3">
-                            <div className="text-sm font-medium text-gray-900">
-                              {item.client_name}
-                            </div>
+                            <div className="text-sm font-medium text-gray-900">{item.client_name}</div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {item.company || 'N/A'}
-                        </div>
+                        <div className="text-sm text-gray-900">{item.company || 'N/A'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-green-600">
-                          ₹{item.amount?.toLocaleString() || 0}
-                        </div>
+                        <div className="text-sm font-medium text-green-600">₹{item.amount?.toLocaleString() || 0}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-500">
-                          {item.returned_date
-                            ? new Date(item.returned_date).toLocaleString()
-                            : 'N/A'}
+                          {item.returned_date ? new Date(item.returned_date).toLocaleString() : 'N/A'}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500 max-w-xs truncate">
-                          {item.notes || '-'}
-                        </div>
+                        <div className="text-sm text-gray-500 max-w-xs truncate">{item.notes || '-'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-500">
@@ -356,18 +289,10 @@ const DepositList = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center justify-end space-x-2">
-                          <button
-                            onClick={() => openEditModal(item)}
-                            className="text-primary-600 hover:text-primary-700 px-3 py-1 rounded text-sm"
-                            title="Edit"
-                          >
+                          <button onClick={() => openEditModal(item)} className="text-primary-600 hover:text-primary-700 px-3 py-1 rounded text-sm" title="Edit">
                             <PencilIcon className="h-5 w-5" />
                           </button>
-                          <button
-                            onClick={() => openDeleteModal(item)}
-                            className="text-red-600 hover:text-red-700 px-3 py-1 rounded text-sm"
-                            title="Delete"
-                          >
+                          <button onClick={() => openDeleteModal(item)} className="text-red-600 hover:text-red-700 px-3 py-1 rounded text-sm" title="Delete">
                             <TrashIcon className="h-5 w-5" />
                           </button>
                         </div>
@@ -380,232 +305,116 @@ const DepositList = () => {
               <div className="text-center py-12">
                 <ClockIcon className="mx-auto h-12 w-12 text-gray-300" />
                 <h3 className="mt-2 text-sm font-medium text-gray-900">No deposit history</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Deposit returns will be tracked here once processed.
-                </p>
+                <p className="mt-1 text-sm text-gray-500">Deposit returns will be tracked here once processed.</p>
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Deposit List Table */}
-      <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Client Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Company
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Email
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Phone
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Deposit Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Deposit Amount
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Deposit Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Deposit Type
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredClients.map((client) => (
-                <tr key={client.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {client.name}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {client.company || 'N/A'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">
-                      {client.email}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">
-                      {client.phone || 'N/A'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {client.has_deposit ? (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        <CurrencyRupeeIcon className="w-3 h-3 mr-1" />
-                        Deposit Paid
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                        No Deposit
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {client.has_deposit ? (
-                        <span className="text-green-600">
-                          ₹{client.deposit_amount?.toLocaleString() || 0}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">
-                      {client.has_deposit && client.deposit_date
-                        ? new Date(client.deposit_date).toLocaleDateString()
-                        : 'N/A'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">
-                      {client.has_deposit && client.deposit_type
-                        ? client.deposit_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-                        : 'N/A'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center justify-end space-x-2">
-                      <button
-                        onClick={() => navigate(`/clients/${client.id}`)}
-                        className="text-primary-600 hover:text-primary-700 px-3 py-1 rounded text-sm"
-                        title="View Details"
-                      >
-                        <EyeIcon className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => navigate(`/clients/edit/${client.id}`)}
-                        className="text-gray-600 hover:text-gray-700 px-3 py-1 rounded text-sm"
-                        title="Edit"
-                      >
-                        <PencilIcon className="h-5 w-5" />
-                      </button>
-                      {client.has_deposit && (
-                        <button
-                        onClick={() => openReturnModal(client)}
-                        className="text-green-600 hover:text-green-700 px-3 py-1 rounded text-sm"
-                        title="Return Deposit"
-                        >
-                        <BanknotesIcon className="h-5 w-5" />
-                        </button>
-                      )}
-                    </div>
-                  </td>
+      {filter === 'with_deposit' && (
+        <div className="card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deposit Amount</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deposit Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deposit Type</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredClients.map((client) => (
+                  <tr key={client.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{client.name}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{client.company || 'N/A'}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500">{client.email}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500">{client.phone || 'N/A'}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-green-600">₹{client.deposit_amount?.toLocaleString() || 0}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500">
+                        {client.deposit_date ? new Date(client.deposit_date).toLocaleDateString() : 'N/A'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-500">
+                        {client.deposit_type ? client.deposit_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end space-x-2">
+                        <button onClick={() => navigate(`/clients/${client.id}`)} className="text-primary-600 hover:text-primary-700 px-3 py-1 rounded text-sm" title="View Details">
+                          <EyeIcon className="h-5 w-5" />
+                        </button>
+                        <button onClick={() => navigate(`/clients/edit/${client.id}`)} className="text-gray-600 hover:text-gray-700 px-3 py-1 rounded text-sm" title="Edit">
+                          <PencilIcon className="h-5 w-5" />
+                        </button>
+                        <button onClick={() => openReturnModal(client)} className="text-green-600 hover:text-green-700 px-3 py-1 rounded text-sm" title="Return Deposit">
+                          <BanknotesIcon className="h-5 w-5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
 
-          {filteredClients.length === 0 && (
-            <div className="text-center py-12">
-              <CurrencyRupeeIcon className="mx-auto h-12 w-12 text-gray-300" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No clients found</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                {filter === 'with_deposit'
-                  ? 'No clients with deposits found'
-                  : filter === 'without_deposit'
-                    ? 'No clients without deposits found'
-                    : 'Get started by adding a new client'}
-              </p>
-              <div className="mt-6">
-                <Link
-                  to="/clients/new"
-                  className="btn-primary inline-flex items-center"
-                >
-                  <CurrencyRupeeIcon className="h-5 w-5 mr-2" />
-                  Add New Client
-                </Link>
+            {filteredClients.length === 0 && (
+              <div className="text-center py-12">
+                <CurrencyRupeeIcon className="mx-auto h-12 w-12 text-gray-300" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No clients with deposits</h3>
+                <p className="mt-1 text-sm text-gray-500">No clients currently have deposits paid.</p>
+                <div className="mt-6">
+                  <Link to="/clients/new" className="btn-primary inline-flex items-center">
+                    <CurrencyRupeeIcon className="h-5 w-5 mr-2" />
+                    Add New Client
+                  </Link>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {filteredClients.length === 0 && (
-        <div className="text-center py-12 card">
-          <CurrencyRupeeIcon className="mx-auto h-12 w-12 text-gray-300" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No clients found</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            {filter === 'with_deposit'
-              ? 'No clients with deposits found'
-              : filter === 'without_deposit'
-                ? 'No clients without deposits found'
-                : 'Get started by adding a new client'}
-          </p>
-          <div className="mt-6">
-            <Link
-              to="/clients/new"
-              className="btn-primary inline-flex items-center"
-            >
-              <CurrencyRupeeIcon className="h-5 w-5 mr-2" />
-              Add New Client
-            </Link>
+            )}
           </div>
         </div>
       )}
 
-      {/* Return Deposit Confirmation Modal */}
       {returnModalOpen && selectedClient && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
-            <div
-              className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
-              onClick={() => setReturnModalOpen(false)}
-            />
+            <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={() => setReturnModalOpen(false)} />
             <div className="relative inline-block p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-xl">
               <div className="flex items-center mb-4">
                 <div className="flex items-center justify-center flex-shrink-0 w-12 h-12 mr-3 rounded-full bg-red-100">
                   <ExclamationTriangleIcon className="w-6 h-6 text-red-600" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900">
-                  Return Deposit
-                </h3>
+                <h3 className="text-lg font-medium text-gray-900">Return Deposit</h3>
               </div>
               <div className="mt-2">
                 <p className="text-sm text-gray-500">
                   Are you sure you want to return the deposit for{' '}
-                  <span className="font-medium text-gray-900">
-                    {selectedClient.name}
-                  </span>
-                  ?
+                  <span className="font-medium text-gray-900">{selectedClient.name}</span>?
                 </p>
                 {selectedClient.deposit_amount && (
                   <p className="mt-2 text-sm text-gray-500">
-                    Deposit amount:{' '}
-                    <span className="font-medium text-gray-900">
-                      ₹{selectedClient.deposit_amount.toLocaleString()}
-                    </span>
+                    Deposit amount: <span className="font-medium text-gray-900">₹{selectedClient.deposit_amount.toLocaleString()}</span>
                   </p>
                 )}
-                <p className="mt-2 text-sm text-gray-500">
-                  This action will remove the deposit from this client's record.
-                </p>
-                
-                {/* Return Type Selection */}
+                <p className="mt-2 text-sm text-gray-500">This action will remove the deposit from this client's record.</p>
                 <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Return Type
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Return Type</label>
                   <select
                     value={returnType}
                     onChange={(e) => setReturnType(e.target.value)}
@@ -620,31 +429,11 @@ const DepositList = () => {
                 </div>
               </div>
               <div className="mt-6 flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setReturnModalOpen(false)}
-                  disabled={returning}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                >
+                <button type="button" onClick={() => setReturnModalOpen(false)} disabled={returning} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
                   Cancel
                 </button>
-                <button
-                  type="button"
-                  onClick={handleReturnDeposit}
-                  disabled={returning}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                >
-                  {returning ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      Processing...
-                    </>
-                  ) : (
-                    'Return Deposit'
-                  )}
+                <button type="button" onClick={handleReturnDeposit} disabled={returning} className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center">
+                  {returning ? 'Processing...' : 'Return Deposit'}
                 </button>
               </div>
             </div>
@@ -652,36 +441,23 @@ const DepositList = () => {
         </div>
       )}
 
-      {/* Edit History Modal */}
       {editModalOpen && selectedHistory && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
-            <div
-              className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
-              onClick={() => setEditModalOpen(false)}
-            />
+            <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={() => setEditModalOpen(false)} />
             <div className="relative inline-block p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-xl">
               <div className="flex items-center mb-4">
                 <div className="flex items-center justify-center flex-shrink-0 w-12 h-12 mr-3 rounded-full bg-primary-100">
                   <PencilIcon className="w-6 h-6 text-primary-600" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900">
-                  Edit Deposit History
-                </h3>
+                <h3 className="text-lg font-medium text-gray-900">Edit Deposit History</h3>
               </div>
               <div className="mt-2">
                 <p className="text-sm text-gray-500 mb-4">
-                  Edit deposit return record for{' '}
-                  <span className="font-medium text-gray-900">
-                    {selectedHistory.client_name}
-                  </span>
+                  Edit deposit return record for <span className="font-medium text-gray-900">{selectedHistory.client_name}</span>
                 </p>
-                
-                {/* Amount Field */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Amount Returned (₹)
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Amount Returned (₹)</label>
                   <input
                     type="number"
                     value={editForm.amount}
@@ -692,12 +468,8 @@ const DepositList = () => {
                     step="0.01"
                   />
                 </div>
-                
-                {/* Return Type Selection */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Return Type
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Return Type</label>
                   <select
                     value={editForm.return_type}
                     onChange={(e) => setEditForm({ ...editForm, return_type: e.target.value })}
@@ -710,12 +482,8 @@ const DepositList = () => {
                     <option value="other">Other</option>
                   </select>
                 </div>
-                
-                {/* Notes Field */}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Notes
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
                   <textarea
                     value={editForm.notes}
                     onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
@@ -726,31 +494,11 @@ const DepositList = () => {
                 </div>
               </div>
               <div className="mt-6 flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setEditModalOpen(false)}
-                  disabled={editing}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                >
+                <button type="button" onClick={() => setEditModalOpen(false)} disabled={editing} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
                   Cancel
                 </button>
-                <button
-                  type="button"
-                  onClick={handleUpdateHistory}
-                  disabled={editing || !editForm.amount}
-                  className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                >
-                  {editing ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      Saving...
-                    </>
-                  ) : (
-                    'Save Changes'
-                  )}
+                <button type="button" onClick={handleUpdateHistory} disabled={editing || !editForm.amount} className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50">
+                  {editing ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </div>
@@ -758,69 +506,35 @@ const DepositList = () => {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
       {deleteModalOpen && selectedHistory && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
-            <div
-              className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
-              onClick={() => setDeleteModalOpen(false)}
-            />
+            <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={() => setDeleteModalOpen(false)} />
             <div className="relative inline-block p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-xl">
               <div className="flex items-center mb-4">
                 <div className="flex items-center justify-center flex-shrink-0 w-12 h-12 mr-3 rounded-full bg-red-100">
                   <TrashIcon className="w-6 h-6 text-red-600" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900">
-                  Delete Deposit History
-                </h3>
+                <h3 className="text-lg font-medium text-gray-900">Delete Deposit History</h3>
               </div>
               <div className="mt-2">
                 <p className="text-sm text-gray-500">
                   Are you sure you want to delete this deposit return record for{' '}
-                  <span className="font-medium text-gray-900">
-                    {selectedHistory.client_name}
-                  </span>
-                  ?
+                  <span className="font-medium text-gray-900">{selectedHistory.client_name}</span>?
                 </p>
                 {selectedHistory.amount && (
                   <p className="mt-2 text-sm text-gray-500">
-                    Amount:{' '}
-                    <span className="font-medium text-gray-900">
-                      ₹{selectedHistory.amount.toLocaleString()}
-                    </span>
+                    Amount: <span className="font-medium text-gray-900">₹{selectedHistory.amount.toLocaleString()}</span>
                   </p>
                 )}
-                <p className="mt-2 text-sm text-red-600">
-                  This action cannot be undone.
-                </p>
+                <p className="mt-2 text-sm text-red-600">This action cannot be undone.</p>
               </div>
               <div className="mt-6 flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setDeleteModalOpen(false)}
-                  disabled={deleting}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                >
+                <button type="button" onClick={() => setDeleteModalOpen(false)} disabled={deleting} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
                   Cancel
                 </button>
-                <button
-                  type="button"
-                  onClick={handleDeleteHistory}
-                  disabled={deleting}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                >
-                  {deleting ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      Deleting...
-                    </>
-                  ) : (
-                    'Delete Record'
-                  )}
+                <button type="button" onClick={handleDeleteHistory} disabled={deleting} className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50">
+                  {deleting ? 'Deleting...' : 'Delete Record'}
                 </button>
               </div>
             </div>
