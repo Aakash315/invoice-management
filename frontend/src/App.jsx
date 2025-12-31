@@ -40,6 +40,7 @@ import ExpenseCategoryForm from './components/expenses/ExpenseCategoryForm';
 import Reports from './components/reports/Reports';
 import ClientPaymentHistory from './components/payments/ClientPaymentHistory';
 import ReminderSettings from './components/settings/ReminderSettings';
+import DepositList from './components/deposits/DepositList';
 
 function App() {
   return (
@@ -67,6 +68,8 @@ function App() {
               <Route path="clients/new" element={<ClientForm />} />
               <Route path="clients/:id" element={<ClientView />} />
               <Route path="clients/edit/:id" element={<ClientForm />} />
+              
+              <Route path="deposits" element={<DepositList />} />
               
               <Route path="invoices" element={<InvoiceList />} />
               <Route path="invoices/new" element={<InvoiceForm />} />

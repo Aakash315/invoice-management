@@ -216,7 +216,7 @@ const ClientView = () => {
       </div>
 
       {/* Document */}
-      <div className="card">
+      <div className="card mb-6">
         <div className="p-6 border-b border-gray-100">
           <h2 className="text-lg font-semibold text-gray-900">Documents</h2>
         </div>
@@ -292,6 +292,63 @@ const ClientView = () => {
             </div>
           ) : (
             <p className="text-gray-500 text-center py-4">No document uploaded</p>
+          )}
+        </div>
+      </div>
+
+      <div className="card mb-6">
+        <div className="p-6 border-b border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-900">Deposit Information</h2>
+        </div>
+        <div className="p-6">
+          {client.deposit_amount ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="flex items-start space-x-3">
+                <div className="p-2 bg-primary-50 rounded-lg">
+                  <svg className="h-5 w-5 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.657 0 3 .895 3 2s-1.343 2-3 2-3 .895-3 2 1.343 2 3 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Deposit Amount</p>
+                  <p className="font-medium text-gray-900">₹{client.deposit_amount?.toLocaleString() || 0}</p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-3">
+                <div className="p-2 bg-primary-50 rounded-lg">
+                  <svg className="h-5 w-5 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7H3v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Deposit Date</p>
+                  <p className="font-medium text-gray-900">
+                    {client.deposit_date
+                      ? new Date(client.deposit_date).toLocaleDateString()
+                      : 'N/A'}
+                  </p>
+                </div>
+              </div>
+
+              {client.deposit_type && (
+                <div className="flex items-start space-x-3">
+                  <div className="p-2 bg-primary-50 rounded-lg">
+                    <svg className="h-5 w-5 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Deposit Type</p>
+                    <p className="font-medium text-gray-900">
+                      {client.deposit_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-center py-4">No deposit information available</p>
           )}
         </div>
       </div>

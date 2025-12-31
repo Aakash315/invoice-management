@@ -213,6 +213,17 @@ const ClientList = () => {
                 {client.company && (
                   <p className="text-sm text-gray-600 mt-1">{client.company}</p>
                 )}
+                
+                {/* Deposit Status Badge */}
+                {client.has_deposit && (
+                  <div className="mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    <svg className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Deposit: ₹{client.deposit_amount?.toLocaleString() || 0}
+                  </div>
+                )}
+                
                 <div className="mt-4 space-y-2">
                   <p className="text-sm text-gray-600">
                     <span className="font-medium">Email:</span> {client.email}

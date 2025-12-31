@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, ConfigDict
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional
 
 class ClientBase(BaseModel):
@@ -15,6 +15,11 @@ class ClientBase(BaseModel):
     base_currency: Optional[str] = 'INR'
     document_type: Optional[str] = None
     document_path: Optional[str] = None
+    # Deposit fields
+    has_deposit: Optional[bool] = False
+    deposit_amount: Optional[float] = None
+    deposit_date: Optional[date] = None
+    deposit_type: Optional[str] = None
 
 class ClientCreate(ClientBase):
     password: Optional[str] = None
@@ -44,6 +49,11 @@ class ClientUpdate(BaseModel):
     is_portal_enabled: Optional[bool] = None
     document_type: Optional[str] = None
     document_path: Optional[str] = None
+    # Deposit fields
+    has_deposit: Optional[bool] = None
+    deposit_amount: Optional[float] = None
+    deposit_date: Optional[date] = None
+    deposit_type: Optional[str] = None
 
 class ClientResponse(ClientBase):
     id: int

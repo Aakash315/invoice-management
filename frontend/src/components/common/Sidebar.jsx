@@ -10,12 +10,14 @@ import {
   CurrencyDollarIcon,
   TagIcon,
   XMarkIcon,
+  BanknotesIcon,
 } from '@heroicons/react/24/outline';
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
   const navigation = [
     { name: 'Dashboard', href: '/', icon: HomeIcon },
     { name: 'Clients', href: '/clients', icon: UsersIcon },
+    { name: 'Deposits', href: '/deposits', icon: BanknotesIcon },
     { name: 'Invoices', href: '/invoices', icon: DocumentTextIcon },
     { name: 'Invoice Templates', href: '/templates', icon: PaintBrushIcon },
     { name: 'Recurring Invoices', href: '/recurring-invoices', icon: ArrowPathIcon },

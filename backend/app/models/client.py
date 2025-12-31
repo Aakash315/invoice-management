@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean, Float, Date
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
@@ -23,6 +23,11 @@ class Client(Base):
     reset_password_expires = Column(DateTime, nullable=True)
     document_type = Column(String(50), nullable=True)
     document_path = Column(String(500), nullable=True)
+    # Deposit fields
+    has_deposit = Column(Boolean, default=False)
+    deposit_amount = Column(Float, nullable=True)
+    deposit_date = Column(Date, nullable=True)
+    deposit_type = Column(String(50), nullable=True) # Cash, Bank Transfer, Cheque, UPI, Other
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

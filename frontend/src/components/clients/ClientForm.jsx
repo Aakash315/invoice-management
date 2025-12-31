@@ -25,6 +25,14 @@ const ClientForm = () => {
     { value: 'other', label: 'Other' },
   ];
 
+  const depositTypes = [
+    { value: 'cash', label: 'Cash' },
+    { value: 'bank_transfer', label: 'Bank Transfer' },
+    { value: 'cheque', label: 'Cheque' },
+    { value: 'upi', label: 'UPI' },
+    { value: 'other', label: 'Other' },
+  ];
+
   // Build validation schema based on whether we're creating or editing
   const getValidationSchema = () => {
     const baseSchema = {
@@ -71,6 +79,11 @@ const ClientForm = () => {
       pincode: '',
       gstin: '',
       document_type: '',
+      // Deposit fields
+      has_deposit: false,
+      deposit_amount: '',
+      deposit_date: '',
+      deposit_type: '',
     },
     enableReinitialize: true,
     validationSchema: getValidationSchema(),
@@ -311,6 +324,11 @@ const ClientForm = () => {
               pincode: clientData.pincode || '',
               gstin: clientData.gstin || '',
               document_type: clientData.document_type || '',
+              // Deposit fields
+              has_deposit: clientData.has_deposit || false,
+              deposit_amount: clientData.deposit_amount || '',
+              deposit_date: clientData.deposit_date || '',
+              deposit_type: clientData.deposit_type || '',
             };
             formik.setValues(safeClientData);
             
@@ -758,7 +776,93 @@ const ClientForm = () => {
                       Delete existing document
                     </button>
                   </div>
-                ) : null}
+                  ) : null}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Deposit Information Section */}
+        <div className='m-10'>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            Deposit Information (Optional)
+          </h2>
+          <div className="space-y-4">
+            {/* Has Deposit Checkbox */}
+            <div className="flex items-center">
+              <input
+                id="has_deposit"
+                name="has_deposit"
+                type="checkbox"
+                checked={formik.values.has_deposit}
+                onChange={formik.handleChange}
+                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+              />
+              <label htmlFor="has_deposit" className="ml-2 block text-sm text-gray-900">
+                Client has paid deposit
+              </label>
+            </div>
+
+            {/* Deposit Amount */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Deposit Amount
+              </label>
+              <div className="relative rounded-md shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-gray-500 sm:text-sm">₹</span>
+                </div>
+                <input
+                  type="number"
+                  name="deposit_amount"
+                  value={formik.values.deposit_amount}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  disabled={!formik.values.has_deposit}
+                  className={`input-field pl-7 ${!formik.values.has_deposit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                  placeholder="0.00"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+            </div>
+
+            {/* Deposit Date and Type */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Deposit Date
+                </label>
+                <input
+                  type="date"
+                  name="deposit_date"
+                  value={formik.values.deposit_date}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  disabled={!formik.values.has_deposit}
+                  className={`input-field ${!formik.values.has_deposit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Deposit Type
+                </label>
+                <select
+                  name="deposit_type"
+                  value={formik.values.deposit_type}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  disabled={!formik.values.has_deposit}
+                  className={`input-field ${!formik.values.has_deposit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                >
+                  <option value="">Select deposit type</option>
+                  {depositTypes.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>
