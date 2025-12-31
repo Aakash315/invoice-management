@@ -23,3 +23,4 @@ class User(Base):
     template_defaults = relationship("UserTemplateDefault", back_populates="user")
     expenses = relationship("Expense", back_populates="created_by_user")
     expense_categories = relationship("ExpenseCategory", back_populates="created_by_user")
+    deposit_returns = relationship("DepositReturnHistory", back_populates="returned_by_user")

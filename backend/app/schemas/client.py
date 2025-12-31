@@ -73,3 +73,29 @@ class ClientToken(BaseModel):
     token_type: str
     client: ClientResponse
 
+class DepositReturnHistoryBase(BaseModel):
+    amount: float
+    notes: Optional[str] = None
+
+class DepositReturnHistoryCreate(DepositReturnHistoryBase):
+    pass
+
+class DepositReturnHistoryResponse(DepositReturnHistoryBase):
+    id: int
+    client_id: int
+    returned_date: datetime
+    returned_by: Optional[int] = None
+    created_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class ClientDepositHistoryResponse(BaseModel):
+    client_id: int
+    client_name: str
+    company: Optional[str]
+    current_deposit: Optional[float] = None
+    current_has_deposit: bool = False
+    deposit_returns: list[DepositReturnHistoryResponse] = []
+    
+    model_config = ConfigDict(from_attributes=True)
+

@@ -51,5 +51,40 @@ export const clientService = {
     });
     return response.data;
   },
+
+  // Return deposit method
+  returnDeposit: async (clientId, returnType = 'cash') => {
+    const response = await api.put(`/clients/${clientId}/return-deposit`, {}, {
+      params: { return_type: returnType }
+    });
+    return response.data;
+  },
+
+  // Deposit history methods
+  getClientDepositHistory: async (clientId) => {
+    const response = await api.get(`/clients/${clientId}/deposit-history`);
+    return response.data;
+  },
+
+  getAllDepositHistory: async () => {
+    const response = await api.get(`/clients/deposit-history/all`);
+    return response.data;
+  },
+
+  updateDepositHistory: async (historyId, data) => {
+    const response = await api.put(`/clients/deposit-history/${historyId}`, null, {
+      params: {
+        amount: data.amount,
+        return_type: data.return_type,
+        notes: data.notes || ''
+      }
+    });
+    return response.data;
+  },
+
+  deleteDepositHistory: async (historyId) => {
+    const response = await api.delete(`/clients/deposit-history/${historyId}`);
+    return response.data;
+  },
 };
 

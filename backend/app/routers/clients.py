@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.database import get_db
-from app.models.client import Client
+from app.models.client import Client, DepositReturnHistory
 from app.models.user import User
-from app.schemas.client import ClientCreate, ClientUpdate, ClientResponse
+from app.schemas.client import ClientCreate, ClientUpdate, ClientResponse, DepositReturnHistoryResponse, ClientDepositHistoryResponse
 from app.utils.dependencies import get_current_user
 from app.utils.auth import get_password_hash
 from app.utils.mail import send_generic_email
@@ -252,3 +252,182 @@ async def get_client_document(
         filename=os.path.basename(client.document_path),
         media_type='application/octet-stream'
     )
+
+@router.put("/{client_id}/return-deposit", response_model=ClientResponse)
+async def return_deposit(
+    client_id: int,
+    return_type: str = Query(default="cash", description="Return type: cash, bank_transfer, upi, check, other"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Return the deposit for a client.
+    This will reset the deposit fields and create a history record.
+    """
+    client = db.query(Client).filter(Client.id == client_id).first()
+    if not client:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Client not found"
+        )
+    
+    if not client.has_deposit:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Client does not have a deposit to return"
+        )
+    
+    # Store the deposit amount before resetting
+    returned_amount = client.deposit_amount or 0
+    
+    # Create deposit return history record
+    deposit_return = DepositReturnHistory(
+        client_id=client.id,
+        amount=returned_amount,
+        returned_by=current_user.id,
+        returned_date=datetime.utcnow(),
+        return_type=return_type,
+        notes=f"Deposit returned via {return_type.replace('_', ' ').title()} for {client.name}"
+    )
+    db.add(deposit_return)
+    
+    # Reset deposit fields
+    client.has_deposit = False
+    client.deposit_amount = None
+    client.deposit_date = None
+    client.deposit_type = None
+    
+    db.commit()
+    db.refresh(client)
+    
+    return client
+
+@router.get("/{client_id}/deposit-history", response_model=ClientDepositHistoryResponse)
+async def get_client_deposit_history(
+    client_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get the deposit history for a specific client.
+    Returns current deposit status and all return history records.
+    """
+    client = db.query(Client).filter(Client.id == client_id).first()
+    if not client:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Client not found"
+        )
+    
+    # Get all deposit return history for this client
+    deposit_returns = db.query(DepositReturnHistory).filter(
+        DepositReturnHistory.client_id == client_id
+    ).order_by(DepositReturnHistory.returned_date.desc()).all()
+    
+    return ClientDepositHistoryResponse(
+        client_id=client.id,
+        client_name=client.name,
+        company=client.company,
+        current_deposit=client.deposit_amount if client.has_deposit else None,
+        current_has_deposit=client.has_deposit,
+        deposit_returns=deposit_returns
+    )
+
+@router.get("/deposit-history/all", response_model=List[dict])
+async def get_all_deposit_history(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get all deposit return history across all clients.
+    """
+    results = []
+    clients = db.query(Client).all()
+    
+    for client in clients:
+        deposit_returns = db.query(DepositReturnHistory).filter(
+            DepositReturnHistory.client_id == client.id
+        ).order_by(DepositReturnHistory.returned_date.desc()).all()
+        
+        for ret in deposit_returns:
+            results.append({
+                'id': ret.id,
+                'client_id': client.id,
+                'client_name': client.name,
+                'company': client.company,
+                'amount': ret.amount,
+                'return_type': ret.return_type,
+                'returned_date': ret.returned_date,
+                'returned_by': ret.returned_by,
+                'notes': ret.notes,
+                'created_at': ret.created_at
+            })
+    
+    # Sort by returned date descending
+    results.sort(key=lambda x: x['returned_date'] if x['returned_date'] else datetime.min, reverse=True)
+    
+    return results
+
+@router.put("/deposit-history/{history_id}", response_model=dict)
+async def update_deposit_history(
+    history_id: int,
+    amount: float = Query(..., description="Amount returned"),
+    return_type: str = Query(..., description="Return type: cash, bank_transfer, upi, check, other"),
+    notes: str = Query(default="", description="Notes for the return"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Update a deposit return history record.
+    """
+    deposit_return = db.query(DepositReturnHistory).filter(DepositReturnHistory.id == history_id).first()
+    if not deposit_return:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Deposit return history not found"
+        )
+    
+    # Update fields
+    deposit_return.amount = amount
+    deposit_return.return_type = return_type
+    deposit_return.notes = notes
+    
+    db.commit()
+    db.refresh(deposit_return)
+    
+    # Get client info for response
+    client = db.query(Client).filter(Client.id == deposit_return.client_id).first()
+    
+    return {
+        'id': deposit_return.id,
+        'client_id': client.id,
+        'client_name': client.name,
+        'company': client.company,
+        'amount': deposit_return.amount,
+        'return_type': deposit_return.return_type,
+        'returned_date': deposit_return.returned_date,
+        'returned_by': deposit_return.returned_by,
+        'notes': deposit_return.notes,
+        'created_at': deposit_return.created_at
+    }
+
+@router.delete("/deposit-history/{history_id}", status_code=status.HTTP_200_OK)
+async def delete_deposit_history(
+    history_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Delete a deposit return history record.
+    """
+    deposit_return = db.query(DepositReturnHistory).filter(DepositReturnHistory.id == history_id).first()
+    if not deposit_return:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Deposit return history not found"
+        )
+    
+    db.delete(deposit_return)
+    db.commit()
+    
+    return {'message': 'Deposit return history deleted successfully'}
