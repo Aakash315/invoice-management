@@ -8,6 +8,7 @@ import {
   MagnifyingGlassIcon,
   XMarkIcon,
   ClockIcon,
+  EyeIcon,
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import DeleteConfirmModal from '../common/DeleteConfirmModal';
@@ -231,6 +232,13 @@ const ClientList = () => {
             </div>
 
             <div className="mt-4 flex items-center space-x-2 m-5">
+              <button
+                onClick={() => navigate(`/clients/${client.id}`)}
+                className="flex-1 bg-primary-50 text-primary-600 px-4 py-2 rounded-lg hover:bg-primary-100 transition-colors text-sm flex items-center justify-center"
+              >
+                <EyeIcon className="h-4 w-4 mr-1" />
+                View
+              </button>
               <button
                 onClick={() => navigate(`/clients/edit/${client.id}`)}
                 className="flex-1 btn-secondary text-sm flex items-center justify-center"

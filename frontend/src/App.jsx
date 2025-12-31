@@ -19,6 +19,7 @@ import ClientPortalLayout from './components/common/ClientPortalLayout';
 import Dashboard from './components/dashboard/Dashboard';
 import ClientDashboard from './components/dashboard/ClientDashboard';
 import ClientList from './components/clients/ClientList';
+import ClientView from './components/clients/ClientView';
 import ClientProfileEditor from './components/clients/ClientProfileEditor';
 import ClientForm from './components/clients/ClientForm';
 import InvoiceList from './components/invoices/InvoiceList';
@@ -64,6 +65,7 @@ function App() {
               
               <Route path="clients" element={<ClientList />} />
               <Route path="clients/new" element={<ClientForm />} />
+              <Route path="clients/:id" element={<ClientView />} />
               <Route path="clients/edit/:id" element={<ClientForm />} />
               
               <Route path="invoices" element={<InvoiceList />} />

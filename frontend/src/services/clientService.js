@@ -25,4 +25,31 @@ export const clientService = {
     const response = await api.delete(`/clients/${id}`);
     return response.data;
   },
+
+  // Document upload methods
+  uploadDocument: async (clientId, documentType, file) => {
+    const formData = new FormData();
+    formData.append('document_type', documentType);
+    formData.append('file', file);
+    
+    const response = await api.put(`/clients/${clientId}/document`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  deleteDocument: async (clientId) => {
+    const response = await api.delete(`/clients/${clientId}/document`);
+    return response.data;
+  },
+
+  getDocument: async (clientId) => {
+    const response = await api.get(`/clients/${clientId}/document`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
 };
+

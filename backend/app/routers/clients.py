@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from app.database import get_db
 from app.models.client import Client
 from app.models.user import User
@@ -9,6 +9,13 @@ from app.utils.dependencies import get_current_user
 from app.utils.auth import get_password_hash
 from app.utils.mail import send_generic_email
 from pathlib import Path
+import os
+import uuid
+from datetime import datetime
+
+# Configure upload directory
+UPLOAD_DIR = Path(__file__).parent.parent.parent / "uploads" / "clients"
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 router = APIRouter(prefix="/clients", tags=["Clients"])
 
@@ -130,3 +137,118 @@ async def delete_client(
     db.commit()
     
     return None
+
+@router.put("/{client_id}/document", response_model=ClientResponse)
+async def upload_client_document(
+    client_id: int,
+    document_type: str = Form(...),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Upload a document for a client (ID Proof, Address Proof, Agreement, etc.)"""
+    client = db.query(Client).filter(Client.id == client_id).first()
+    if not client:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Client not found"
+        )
+    
+    # Validate document type
+    valid_types = ['aadhar_card', 'pan_card', 'passport', 'voter_id', 'driving_licence', 'other']
+    if document_type not in valid_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid document type. Must be one of: {', '.join(valid_types)}"
+        )
+    
+    # Validate file type (allow images and PDFs)
+    allowed_content_types = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf']
+    if file.content_type not in allowed_content_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file type. Only images (JPEG, PNG, GIF) and PDF are allowed."
+        )
+    
+    # Generate unique filename
+    file_extension = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
+    unique_filename = f"{client_id}_{document_type}_{uuid.uuid4().hex[:8]}.{file_extension}"
+    file_path = UPLOAD_DIR / unique_filename
+    
+    # Save file
+    try:
+        content = await file.read()
+        with open(file_path, 'wb') as f:
+            f.write(content)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to save file: {str(e)}"
+        )
+    
+    # Update client with document info
+    client.document_type = document_type
+    client.document_path = str(file_path)
+    
+    db.commit()
+    db.refresh(client)
+    
+    return client
+
+@router.delete("/{client_id}/document", response_model=ClientResponse)
+async def delete_client_document(
+    client_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a client's document"""
+    client = db.query(Client).filter(Client.id == client_id).first()
+    if not client:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Client not found"
+        )
+    
+    # Delete file if exists
+    if client.document_path and os.path.exists(client.document_path):
+        try:
+            os.remove(client.document_path)
+        except Exception as e:
+            print(f"Failed to delete file: {e}")
+    
+    # Clear document fields
+    client.document_type = None
+    client.document_path = None
+    
+    db.commit()
+    db.refresh(client)
+    
+    return client
+
+@router.get("/{client_id}/document")
+async def get_client_document(
+    client_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get client's document info and serve the file if exists"""
+    client = db.query(Client).filter(Client.id == client_id).first()
+    if not client:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Client not found"
+        )
+    
+    if not client.document_path or not os.path.exists(client.document_path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found"
+        )
+    
+    # Return document info with file as response
+    from fastapi.responses import FileResponse
+    return FileResponse(
+        path=client.document_path,
+        filename=os.path.basename(client.document_path),
+        media_type='application/octet-stream'
+    )

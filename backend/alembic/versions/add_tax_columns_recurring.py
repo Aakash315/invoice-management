@@ -1,16 +1,18 @@
 """add_tax_columns_to_recurring_invoices
 
 Revision ID: add_tax_columns_to_recurring_invoices
-Revises: add_recurring_invoice_columns
+Revises: e9b79ea648de, add_recurring_invoice_columns
 Create Date: 2024-01-01 00:00:00.000000
 
 """
+from typing import Sequence, Union
+
 from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'add_tax_columns_to_recurring_invoices'
-down_revision = 'add_recurring_invoice_columns'
+down_revision: Union[str, Sequence[str], None] = ('e9b79ea648de', 'add_recurring_invoice_columns')
 branch_labels = None
 depends_on = None
 

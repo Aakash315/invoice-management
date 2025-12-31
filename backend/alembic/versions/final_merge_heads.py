@@ -1,8 +1,8 @@
-"""merge_heads
+"""final_merge_heads
 
-Revision ID: e9b79ea648de
-Revises: a21a455f606a, add_expense_tracking_tables, 4cdcc3bc994d
-Create Date: 2025-12-30 19:18:32.237968
+Revision ID: b2c3d4e5f6a7
+Revises: a1b2c3d4e5f6, 4cdcc3bc994d
+Create Date: 2025-12-30 19:30:00.000000
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'e9b79ea648de'
-down_revision: Union[str, Sequence[str], None] = ('a21a455f606a', 'add_expense_tracking_tables', '4cdcc3bc994d')
+revision: str = 'b2c3d4e5f6a7'
+down_revision: Union[str, Sequence[str], None] = ('a1b2c3d4e5f6', '4cdcc3bc994d')
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

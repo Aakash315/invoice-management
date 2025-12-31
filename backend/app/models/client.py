@@ -21,6 +21,8 @@ class Client(Base):
     is_portal_enabled = Column(Boolean, default=False) # Added to control portal access
     reset_password_token = Column(String(255), nullable=True)
     reset_password_expires = Column(DateTime, nullable=True)
+    document_type = Column(String(50), nullable=True)
+    document_path = Column(String(500), nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
